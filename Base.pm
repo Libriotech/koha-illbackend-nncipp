@@ -131,45 +131,8 @@ sub metadata {
         ID     => $attrs->find({ type => 'id' })->value,
         Title  => $attrs->find({ type => 'title' })->value,
         Author => $attrs->find({ type => 'author' })->value,
-        Status => $attrs->find({ type => 'status' })->value,
+        # Status => $attrs->find({ type => 'status' })->value,
     }
-}
-
-=head3 _data_store
-
-  my $request = $self->_data_store($id);
-  my $requests = $self->_data_store;
-
-A mock of a data store.  When passed no parameters it returns all entries.
-When passed one it will return the entry matched by its id.
-
-=cut
-
-sub _data_store {
-    my $data = {
-        1234 => {
-            id     => 1234,
-            title  => "Ordering ILLs using Koha",
-            author => "A.N. Other",
-            status => "New",
-        },
-        5678 => {
-            id     => 5678,
-            title  => "Interlibrary loans in Koha",
-            author => "A.N. Other",
-            status => "New",
-        },
-    };
-    # ID search
-    my ( $self, $id ) = @_;
-    return $data->{$id} if $id;
-
-    # Full search
-    my @entries;
-    while ( my ( $k, $v ) = each %{$data} ) {
-        push @entries, $v;
-    }
-    return \@entries;
 }
 
 =head3 status_graph
@@ -177,7 +140,20 @@ sub _data_store {
 =cut
 
 sub status_graph {
-    return {};
+    return {
+        ORDERED => {
+            prev_actions => [ ],                           # Actions containing buttons
+                                                           # leading to this status
+            id             => 'ORDERED',                   # ID of this status
+            name           => 'Ordered',                   # UI name of this status
+            ui_method_name => 'Ordered',                   # UI name of method leading
+                                                           # to this status
+            method         => 'create',                    # method to this status
+            next_actions   => [ 'REQ', 'GENREQ', 'KILL' ], # buttons to add to all
+                                                           # requests with this status
+            ui_method_icon => 'fa-plus',                   # UI Style class
+        },
+    };
 }
 
 =head3 create
@@ -204,94 +180,38 @@ sub create {
     # -> initial placement of the request for an ILL order
     my ( $self, $params ) = @_;
     my $stage = $params->{other}->{stage};
-    if ( !$stage || $stage eq 'init' ) {
-        # We simply need our template .INC to produce a search form.
-        return {
-            error   => 0,
-            status  => '',
-            message => '',
-            method  => 'create',
-            stage   => 'search_form',
-            value   => $params,
-        };
-    } elsif ( $stage eq 'search_form' ) {
-	# Received search query in 'other'; perform search...
 
-        # TODO
-
-        # and return results.
-        return {
-            error   => 0,
-            status  => '',
-            message => '',
-            method  => 'create',
-            stage   => 'search_results',
-            value   => {
-                borrowernumber => $params->{other}->{borrowernumber},
-                branchcode     => $params->{other}->{branchcode},
-                medium         => $params->{other}->{medium},
-		backend        => $params->{other}->{backend},
-                candidates     => $self->_data_store,
-            }
-        };
-    } elsif ( $stage eq 'search_results' ) {
-        # We have a selection
-        my $id = $params->{other}->{id};
-
-        # -> select from backend...
-        my $request_details = $self->_data_store($id);
-
-        # Establish borrower
-        my $brwnum;
-        if ( $params->{other}->{cardnumber} ) {
-            # OPAC request
-            my $brw = Koha::Patrons->find({
-                cardnumber => $params->{other}->{cardnumber}
-            });
-            $brwnum = $brw->borrowernumber;
-        } else {
-            $brwnum = $params->{other}->{borrowernumber};
-        }
-        # ...Populate Illrequest
-        my $request = $params->{request};
-        $request->borrowernumber($brwnum);
-        $request->branchcode($params->{other}->{branchcode});
-        $request->medium($params->{other}->{medium});
-        $request->status('NEW');
-        $request->backend($params->{other}->{backend});
-        $request->placed(DateTime->now);
-        $request->updated(DateTime->now);
-        $request->store;
-        # ...Populate Illrequestattributes
-        while ( my ( $type, $value ) = each %{$request_details} ) {
-            Koha::Illrequestattribute->new({
-                illrequest_id => $request->illrequest_id,
-                type          => $type,
-                value         => $value,
-            })->store;
-        }
-
-        # -> create response.
-        return {
-            error   => 0,
-            status  => '',
-            message => '',
-            method  => 'create',
-            stage   => 'commit',
-            next    => 'illview',
-            value   => $request_details,
-        };
-    } else {
-	# Invalid stage, return error.
-        return {
-            error   => 1,
-            status  => 'unknown_stage',
-            message => '',
-            method  => 'create',
-            stage   => $params->{stage},
-            value   => {},
-        };
+    # ...Populate Illrequest
+    my $request = $params->{request};
+    $request->borrowernumber($params->{other}->{borrowernumber});
+    $request->biblio_id($params->{other}->{biblionumber});
+    $request->branchcode($params->{other}->{branchcode});
+    $request->medium($params->{other}->{medium});
+    $request->status($params->{other}->{status});
+    $request->backend($params->{other}->{backend});
+    $request->placed(DateTime->now);
+    $request->updated(DateTime->now);
+    $request->store;
+    # ...Populate Illrequestattributes
+    while ( my ( $type, $value ) = each %{$params->{other}->{attr}} ) {
+        Koha::Illrequestattribute->new({
+            illrequest_id => $request->illrequest_id,
+            type          => $type,
+            value         => $value,
+        })->store;
     }
+
+    # -> create response.
+    return {
+        error   => 0,
+        status  => '',
+        message => '',
+        method  => 'create',
+        stage   => 'commit',
+        next    => 'illview',
+        # value   => $request_details,
+    };
+
 }
 
 =head3 confirm
