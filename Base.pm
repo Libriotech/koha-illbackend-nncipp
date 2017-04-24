@@ -127,12 +127,14 @@ illrequestattributes store.
 sub metadata {
     my ( $self, $request ) = @_;
     my $attrs = $request->illrequestattributes;
-    return {
-        ID     => $attrs->find({ type => 'id' })->value,
-        Title  => $attrs->find({ type => 'title' })->value,
-        Author => $attrs->find({ type => 'author' })->value,
-        # Status => $attrs->find({ type => 'status' })->value,
-    }
+    my %out = (
+        ID     => scalar($attrs->find({ type => 'id' })),
+        Title  => scalar($attrs->find({ type => 'title' })),
+        Author => scalar($attrs->find({ type => 'author' })),
+        # Status => $attrs->find({ type => 'status' }),
+    );
+    $_ = $_->value for grep values %out;
+    return %out;
 }
 
 =head3 status_graph
