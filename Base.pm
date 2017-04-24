@@ -190,7 +190,7 @@ sub create {
     $request->biblio_id($params->{other}->{biblionumber});
     $request->branchcode($params->{other}->{branchcode});
     $request->medium($params->{other}->{medium});
-    $request->status($params->{other}->{status});
+    $request->status("NEW");
     $request->backend($params->{other}->{backend});
     $request->placed(DateTime->now);
     $request->updated(DateTime->now);
