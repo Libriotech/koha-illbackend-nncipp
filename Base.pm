@@ -185,7 +185,8 @@ sub create {
 
     # ...Populate Illrequest
     my $request = $params->{request};
-    $request->borrowernumber($params->{other}->{borrowernumber});
+    my $borrowernumber = $params->{other}->{borrowernumber} or die "missing borrowernumber";
+    $request->borrowernumber($borrowernumber);
     $request->biblio_id($params->{other}->{biblionumber});
     $request->branchcode($params->{other}->{branchcode});
     $request->medium($params->{other}->{medium});
