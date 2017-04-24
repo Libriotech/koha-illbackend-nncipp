@@ -196,7 +196,7 @@ sub create {
     $request->updated(DateTime->now);
     $request->store;
     # ...Populate Illrequestattributes
-    while ( my ( $type, $value ) = each %{$params->{other}->{attr}} ) {
+    while ( my ( $type, $value ) = each %{$params->{other}->{attr}//{}} ) {
         Koha::Illrequestattribute->new({
             illrequest_id => $request->illrequest_id,
             type          => $type,
@@ -247,7 +247,7 @@ sub confirm {
     # TODO
 
     # ...parse response...
-    $attributes->find({ type => "status" })->value('On order')->store;
+    $attributes->find_or_create({ type => "status", value => "On order" });
     my $request = $params->{request};
     $request->cost("30 GBP");
     $request->orderid($value->{id});
