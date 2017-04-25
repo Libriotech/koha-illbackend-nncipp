@@ -117,6 +117,44 @@ sub name {
     return "NNCIPP";
 }
 
+use XML::LibXML;
+
+# expect a tree of ARRAYs, returns a NCIP compliant xml object
+sub _build_xml {
+    my (@data) = @_;
+
+    my $doc = XML::LibXML::Document->new('1.0', 'UTF-8');
+    $doc->setStandalone(1);
+
+    #my $ns = XML::LibXML::Namespace->new('http://www.niso.org/2008/ncip');
+
+    my $root = $doc->createElement('NCIPMessage');
+    $root->setNamespace('http://www.niso.org/2008/ncip' => 'ns1' => 1);
+    $root->setAttributeNS('http://www.niso.org/2008/ncip' => 'version' => 'http://www.niso.org/schemas/ncip/v2_02/ncip_v2_02.xsd');
+    $doc->setDocumentElement($root);
+
+    my $appender; $appender = sub {
+        my ($parent, $data) = @_;
+        if (ref $data) {
+            my @list = @$data;
+            while(@list) {
+                my $name = shift @list;
+                my $data = shift @list;
+
+                my $node = $doc->createElement($name);
+                $node->setNamespace('http://www.niso.org/2008/ncip' => ns1 => 1);
+                $parent->appendChild($node);
+                $appender->($node, $data) if $data;
+            }
+        } else {
+            $parent->appendText($data);
+        }
+    };
+    $appender->($root, \@data);
+
+    return $doc;
+}
+
 =head3 metadata
 
 Return a hashref containing canonical values from the key/value
@@ -245,6 +283,28 @@ sub confirm {
     # Submit request to backend...
 
     # TODO
+    my $xml = Koha::Illbackends::NNCIPP::Base::_build_xml(
+        ItemRequested => [
+            InitiationHeader => [
+                FromAgencyId => [
+                    AgencyId => "FFL", #TODO
+                ],
+                ToAgencyId => [
+                    AgencyId => "CPL", #TODO
+                ],
+            ],
+            UserId => [
+                UserIdentifierValue => 51, #TODO
+            ],
+            ItemId => [
+                ItemIdentifierValue => 1, #TODO
+            ],
+            RequestType => "Loan",
+            RequestScopeType => 0,
+        ],
+    );
+    warn $xml->toString()." ... OHA";
+    # TODO send $xml->toString();
 
     # ...parse response...
     $attributes->find_or_create({ type => "status", value => "On order" });
