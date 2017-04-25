@@ -155,6 +155,36 @@ sub _build_xml {
     return $doc;
 }
 
+# expect a string, parse it as xml and return a HoH (with arrays where needed)
+sub _parse_xml {
+    my ($s) = @_;
+    my $doc = XML::LibXML->load_xml(string => $s);
+    my $e = $doc->documentElement();
+
+    my $parser; $parser = sub {
+        my ($e) = @_;
+        my $out = {};
+        for my $node ($e->nonBlankChildNodes()) {
+            my $name = $node->nodeName();
+            if ($name eq '#text') {
+                my $t = $node->textContent;
+                $t =~ s{^\s+}{}; $t =~ s{\s+$}{};
+                return $t;
+            }
+            $name =~ s{^\w+:}{} or next;
+            my $child = $parser->($node);
+            push @{ $out->{$name}//=[] }, $child;
+        }
+
+        # collapse single element lists (TODO, this might be not the best in some cases, but there is not much we can do)
+        for (values %$out) {
+            $_ = $_->[0] if scalar(@$_)<2;
+        }
+        return $out;
+    };
+    $parser->($e);
+}
+
 =head3 metadata
 
 Return a hashref containing canonical values from the key/value
