@@ -301,7 +301,10 @@ sub create {
     $request->store;
 
     my $attributes = $params->{request}->illrequestattributes;
-    $attributes->find_or_create({ type => $_, value => $params->{other}->{$_} }) for qw/title author/;
+    for my $k (keys %{ $params->{other} }) {
+        my $v = $params->{other}->{$k} // next;
+        $attributes->find_or_create({ type => $k, value => $v });
+    }
 
     # ...Populate Illrequestattributes
     while ( my ( $type, $value ) = each %{$params->{other}->{attr}//{}} ) {
