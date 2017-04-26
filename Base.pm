@@ -246,16 +246,36 @@ This is an example of a multi-stage method.
 
 =cut
 
+#BEGIN {
+#    $SIG{__DIE__} = sub {
+#        Carp::cluck "DIE[@_]";
+#        CORE::die(@_);
+#    };
+#};
+
 sub create {
     # -> initial placement of the request for an ILL order
     my ( $self, $params ) = @_;
     my $stage = $params->{other}->{stage};
+
+    if (!$stage) { # display a simple form asking for details
+        return {
+            error   => 0,
+            status  => '',
+            message => '',
+            method  => 'create',
+            stage   => 'create_form',
+            value   => {},
+        };
+    }
+    use Data::Dumper; warn Dumper($params)." OHA";
 
     # ...Populate Illrequest
     my $request = $params->{request};
     my $borrowernumber = $params->{other}->{borrowernumber} or die "missing borrowernumber";
     $request->borrowernumber($borrowernumber);
     $request->biblio_id($params->{other}->{biblionumber});
+
     $request->branchcode($params->{other}->{branchcode});
     $request->medium($params->{other}->{medium});
     $request->status("NEW");

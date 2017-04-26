@@ -8,7 +8,53 @@
     </ol>
 [% END %]
 
-[% IF whole.stage == "search_form" %]
+[% IF whole.stage == "create_form" %]
+    <h2>Add details</h2>
+    [% USE Dumper; "<pre>"; Dumper.dump(whole, request) | html; "</pre>"; %]
+    <form class="validated" method="post" action="/cgi-bin/koha/ill/ill-requests.pl">
+        <input type="hidden" name="stage" value="[% whole.stage %]"/>
+        <input type="hidden" name="method" value="[% whole.method %]"/>
+        <input type="hidden" name="op" value="[% whole.method %]"/>
+        <input name="backend" id="method" value="[% whole.value.other.backend || 'NNCIPP' %]" type="hidden"/>
+        <fieldset class="rows">
+            <ol>
+                <li>
+                    <label class="required" for="title">Title: </label>
+                    <input class="required" type="text" name="title" value="" />
+                </li>
+                <li>
+                    <label class="required" for="author">Author: </label>
+                    <input class="required" type="text" name="author" value="" />
+                </li>
+                <li>
+                    <label class="required" for="borrowernumber">Borrower number: </label>
+                    <input class="required" required="required" type="text" name="borrowernumber" value="[% loggedinusernumber %]" />
+                    <span class="required">Required</span>
+                </li>
+                <li>
+                    <label class="required" for="branchcode">Pickup branch: </label>
+                    <select class="required" required="required" id="branchcode" name="branchcode">
+                        [% FOREACH branch IN branches %]
+                            [% IF branch.branchcode == Branches.GetLoggedInBranchcode %]
+                            <option value="[% branch.branchcode %]" selected>
+                            [% ELSE %]
+                            <option value="[% branch.branchcode %]">
+                            [% END %]
+                        [% branch.branchname %]
+                            </option>
+                        [% END %]
+                    </select>
+                    <span class="required">Required</span>
+                </li>
+            </ol>
+        </fieldset>
+        <fieldset class="action">
+            <input type="submit" value="create_form"/>
+            <a class="cancel" href="/cgi-bin/koha/ill/ill-requests.pl">Cancel</a>
+        </fieldset>
+    </form>
+
+[% ELSIF whole.stage == "search_form" %]
     <h2>Search a dummy request</h2>
     <form class="validated" method="post" action="/cgi-bin/koha/ill/ill-requests.pl">
         <input type="hidden" name="stage" value="[% whole.stage %]"/>
