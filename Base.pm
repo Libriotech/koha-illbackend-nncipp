@@ -19,6 +19,11 @@ package Koha::Illbackends::NNCIPP::Base;
 
 use Modern::Perl;
 use DateTime;
+
+use XML::LibXML;
+use LWP::UserAgent;
+use HTTP::Request;
+
 use Koha::Illrequestattribute;
 use Koha::Patrons;
 
@@ -109,6 +114,9 @@ sub new {
     # -> instantiate the backend
     my ( $class ) = @_;
     my $self = {};
+    $self->{ua} = LWP::UserAgent->new(
+        agent => "Koha-NNCIP/1.0 (inter library loans module - if abuse contact oha at oha.it)",
+    );
     bless( $self, $class );
     return $self;
 }
@@ -117,7 +125,18 @@ sub name {
     return "NNCIPP";
 }
 
-use XML::LibXML;
+sub _ncip {
+    my ($self, @data) = @_;
+    my $xml = _build_xml(@data);
+    my $req = HTTP::Request->new(
+        #POST => 'http://koha.ncip.bibkat.no/', # TODO the url should be set during ->create()
+        POST => 'http://127.0.0.1:3000/', # TODO test
+        [],
+        $xml->toString(1),
+    );
+    my $res = $self->{ua}->request($req);
+}
+
 
 # expect a tree of ARRAYs, returns a NCIP compliant xml object
 sub _build_xml {
@@ -268,9 +287,6 @@ sub create {
             value   => {},
         };
     }
-    use Data::Dumper; warn Dumper($params)." OHA";
-
-    # ...Populate Illrequest
     my $request = $params->{request};
     my $borrowernumber = $params->{other}->{borrowernumber} or die "missing borrowernumber";
     $request->borrowernumber($borrowernumber);
@@ -336,8 +352,7 @@ sub confirm {
     };
     # Submit request to backend...
 
-    # TODO
-    my $xml = Koha::Illbackends::NNCIPP::Base::_build_xml(
+    _ncip(
         ItemRequested => [
             InitiationHeader => [
                 FromAgencyId => [
@@ -357,8 +372,6 @@ sub confirm {
             RequestScopeType => 0,
         ],
     );
-    warn $xml->toString()." ... OHA";
-    # TODO send $xml->toString();
 
     # ...parse response...
     $attributes->find_or_create({ type => "status", value => "On order" });
