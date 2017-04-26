@@ -201,8 +201,8 @@ sub metadata {
         Author => scalar($attrs->find({ type => 'author' })),
         # Status => $attrs->find({ type => 'status' }),
     );
-    eval { $_ = $_->value } for values %out;
-    return %out;
+    defined $_ and $_ = $_->value for values %out;
+    return \%out;
 }
 
 =head3 status_graph
