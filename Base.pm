@@ -201,7 +201,7 @@ sub metadata {
         Author => scalar($attrs->find({ type => 'author' })),
         # Status => $attrs->find({ type => 'status' }),
     );
-    $_ = $_->value for grep values %out;
+    eval { $_ = $_->value } for values %out;
     return %out;
 }
 
