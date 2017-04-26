@@ -283,6 +283,10 @@ sub create {
     $request->placed(DateTime->now);
     $request->updated(DateTime->now);
     $request->store;
+
+    my $attributes = $params->{request}->illrequestattributes;
+    $attributes->find_or_create({ type => $_, value => $params->{other}->{$_} }) for qw/title author/;
+
     # ...Populate Illrequestattributes
     while ( my ( $type, $value ) = each %{$params->{other}->{attr}//{}} ) {
         Koha::Illrequestattribute->new({
