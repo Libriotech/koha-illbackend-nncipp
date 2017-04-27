@@ -214,15 +214,15 @@ illrequestattributes store.
 sub metadata {
     my ( $self, $request ) = @_;
     my $attrs = $request->illrequestattributes;
-    my %out = (
-        ID     => scalar($attrs->find({ type => 'id' })),
-        Title  => scalar($attrs->find({ type => 'title' })),
-        Author => scalar($attrs->find({ type => 'author' })),
-        # Status => $attrs->find({ type => 'status' }),
-    );
-    defined $_ and $_ = $_->value for values %out;
-    return \%out;
+    return {
+        ID     => $attrs->find({ type => 'id' })->value,
+        Title  => $attrs->find({ type => 'title' })->value,
+        Author => $attrs->find({ type => 'author' })->value,
+        Status => $attrs->find({ type => 'status' })->value,
+        OrderedFrom => $attrs->find({ type => 'ordered_from' })->value,
+    }
 }
+
 
 =head3 status_graph
 
@@ -288,26 +288,19 @@ sub create {
         };
     }
     my $request = $params->{request};
-    my $borrowernumber = $params->{other}->{borrowernumber} or die "missing borrowernumber";
+    my $borrowernumber = $params->{other}->{borrowernumber}; # FIXME Check that we have a valid borrowernumber
     $request->borrowernumber($borrowernumber);
     $request->biblio_id($params->{other}->{biblionumber});
 
     $request->branchcode($params->{other}->{branchcode});
     $request->medium($params->{other}->{medium});
-    $request->status("NEW");
+    $request->status($params->{other}->{status});
     $request->backend($params->{other}->{backend});
     $request->placed(DateTime->now);
     $request->updated(DateTime->now);
     $request->store;
-
-    my $attributes = $params->{request}->illrequestattributes;
-    for my $k (keys %{ $params->{other} }) {
-        my $v = $params->{other}->{$k} // next;
-        $attributes->find_or_create({ type => $k, value => $v });
-    }
-
     # ...Populate Illrequestattributes
-    while ( my ( $type, $value ) = each %{$params->{other}->{attr}//{}} ) {
+    while ( my ( $type, $value ) = each %{$params->{other}->{attr}} ) {
         Koha::Illrequestattribute->new({
             illrequest_id => $request->illrequest_id,
             type          => $type,
