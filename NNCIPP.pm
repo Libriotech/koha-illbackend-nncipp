@@ -23,6 +23,8 @@ use C4::Log;
 use C4::Members::Attributes qw ( GetBorrowerAttributeValue );
 
 use HTTP::Tiny;
+use XML::Simple;
+
 use Modern::Perl;
 
 =head1 NAME
