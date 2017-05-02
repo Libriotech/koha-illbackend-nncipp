@@ -59,44 +59,6 @@ sub new {
 }
 
 
-
-# expect a tree of ARRAYs, returns a NCIP compliant xml object
-sub _build_xml {
-    my (@data) = @_;
-
-    my $doc = XML::LibXML::Document->new('1.0', 'UTF-8');
-    $doc->setStandalone(1);
-
-    #my $ns = XML::LibXML::Namespace->new('http://www.niso.org/2008/ncip');
-
-    my $root = $doc->createElement('NCIPMessage');
-    $root->setNamespace('http://www.niso.org/2008/ncip' => 'ns1' => 1);
-    $root->setAttributeNS('http://www.niso.org/2008/ncip' => 'version' => 'http://www.niso.org/schemas/ncip/v2_02/ncip_v2_02.xsd');
-    $doc->setDocumentElement($root);
-
-    my $appender; $appender = sub {
-        my ($parent, $data) = @_;
-        if (ref $data) {
-            my @list = @$data;
-            while(@list) {
-                my $name = shift @list;
-                my $data = shift @list;
-
-                my $node = $doc->createElement($name);
-                $node->setNamespace('http://www.niso.org/2008/ncip' => ns1 => 1);
-                $parent->appendChild($node);
-                $appender->($node, $data) if $data;
-            }
-        } else {
-            $parent->appendText($data);
-        }
-    };
-    $appender->($root, \@data);
-
-    return $doc;
-}
-
-
 =head2 SendItemRequested
 
 Typically triggered when a library has logged into the OPAC and placed an ILL
@@ -236,6 +198,65 @@ sub _send_message {
     }
 
 }
+
+=head2 _build_xml
+
+Build a proper NCIP XML document (with niso.org namespaces) from an Array references tree
+
+e.g.:
+
+    _build_xml(
+        ItemRequest => [
+            Foo => "foo",
+        ]);
+
+will return:
+
+    <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+    <ns1:NCIPMessage xmlns:ns1="http://www.niso.org/2008/ncip" ns1:version="http://www.niso.org/schemas/ncip/v2_02/ncip_v2_02.xsd">
+      <ns1:ItemRequest>
+        <ns1:Foo>foo</ns1:Foo>
+      </ns1:ItemRequest>
+    </ns1:NCIPMessage>
+
+=cut
+
+sub _build_xml {
+    my (@data) = @_;
+
+    my $doc = XML::LibXML::Document->new('1.0', 'UTF-8');
+    $doc->setStandalone(1);
+
+    #my $ns = XML::LibXML::Namespace->new('http://www.niso.org/2008/ncip');
+
+    my $root = $doc->createElement('NCIPMessage');
+    $root->setNamespace('http://www.niso.org/2008/ncip' => 'ns1' => 1);
+    $root->setAttributeNS('http://www.niso.org/2008/ncip' => 'version' => 'http://www.niso.org/schemas/ncip/v2_02/ncip_v2_02.xsd');
+    $doc->setDocumentElement($root);
+
+    my $appender; $appender = sub {
+        my ($parent, $data) = @_;
+        if (ref $data) {
+            my @list = @$data;
+            while(@list) {
+                my $name = shift @list;
+                my $data = shift @list;
+
+                my $node = $doc->createElement($name);
+                $node->setNamespace('http://www.niso.org/2008/ncip' => ns1 => 1);
+                $parent->appendChild($node);
+                $appender->($node, $data) if $data;
+            }
+        } else {
+            $parent->appendText($data);
+        }
+    };
+    $appender->($root, \@data);
+
+    return $doc;
+}
+
+
 
 =head2 _get_langcode_from_bibliodata
 
