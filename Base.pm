@@ -215,13 +215,20 @@ illrequestattributes store.
 sub metadata {
     my ( $self, $request ) = @_;
     my $attrs = $request->illrequestattributes;
-    return {
-        ID     => $attrs->find({ type => 'id' })->value,
-        Title  => $attrs->find({ type => 'title' })->value,
-        Author => $attrs->find({ type => 'author' })->value,
-        Status => $attrs->find({ type => 'status' })->value,
-        OrderedFrom => $attrs->find({ type => 'ordered_from' })->value,
-    }
+    my %map = (
+        ID => 'id',
+        Title => 'title',
+        Author => 'author',
+        Status => 'status',
+        OrderFrom => 'order_from',
+    );
+
+    my %attr = map {
+        my $v = $attrs->find({ type => $map{$_} });
+        return $v ? ($_ => $v->value) : ($_ => undef);
+    } keys %map;
+
+    return \%attr;
 }
 
 
