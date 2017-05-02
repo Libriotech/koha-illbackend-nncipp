@@ -2,4 +2,45 @@
 
 This is the NNCIPP ILL backend for Koha
 
+=head2 Setting up the OPAC
+
+The way NNCIPP works, a librarian from LibraryA can log into the OPAC of
+LibraryB and initiate an ILL request there. In order to make this work, we need
+to add a page from the present repo to the OPAC. This is done with symlinks:
+
+First clone the repo to somewhere on your Koha server:
+
+ $ git clone https://github.com/Libriotech/koha-illbackend-nncipp.git
+
+=head3 Link the scripts
+
+How you create the links depends on how you installed Koha:
+
+=head4 Debian packages
+
+ $ ln -s /path/to/koha-illbackend-nncipp/blob/master/opac/opac-nncipp.pl /usr/share/koha/opac/cgi-bin/opac/opac-nncipp.pl
+ $ ln -s /path/to/koha-illbackend-nncipp/blob/master/opac/opac-nncipp.tt /usr/share/koha/opac/htdocs/opac-tmpl/bootstrap/en/modules/opac-nncipp.tt
+
+Replace "/path/to" with the actual path to your clone of koha-illbackend-nncipp.
+
+=head4 Gitified install
+
+ $ ln -s /path/to/koha-illbackend-nncipp/blob/master/opac/opac-nncipp.pl /path/to/kohaclone/opac/opac-nncipp.pl
+ $ ln -s /path/to/koha-illbackend-nncipp/blob/master/opac/opac-nncipp.tt /path/to/kohaclone/koha-tmpl/opac-tmpl/bootstrap/en/modules/opac-nncipp.tt
+
+Replace "/path/to/kohaclone" with the actual path to your clone of the Koha git repo.
+
+=head3 From detail view to NNCIPP form
+
+Currently, there is no link from the detail view of a record in Koha to the
+NNCIPP order form provided by opac-nncipp.pl. This will come later. For now the
+transition will have to be made "by hand". If you are lookin at the detail view
+of biblionumber 5 your URL will look like this:
+
+ <opac>/cgi-bin/koha/opac-detail.pl?biblionumber=5
+
+To see the NNCIPP ILL form for that record you must change the URL to this:
+
+ <opac>/cgi-bin/koha/opac-nncipp.pl?biblionumber=5
+
 =cut
