@@ -54,7 +54,9 @@ our $VERSION = '0.01';
 
 sub new {
     my ( $class ) = @_;
-    my $self  = {};
+    my $self  = {
+        XML -> Koha::Illbackends::NNCIPP::XML->new(),
+    };
     bless $self, $class;
     return $self;
 }
@@ -103,7 +105,7 @@ sub SendItemRequested {
     # Pick out the language code from 008, position 35-37
     my $lang_code = _get_langcode_from_bibliodata( $biblionumber );
 
-    my $xml = $self->_SendItemRequested(
+    my $xml = $self->{XML}->SendItemRequested(
         to_agency => "NO-".$borrower->cardnumber,
         from_agency => "NO-".C4::Context->preference('ILLISIL'),
         userid => $userid,
@@ -120,58 +122,6 @@ sub SendItemRequested {
         },
     );
     return _send_message( 'ItemRequested', $xml->toString(1), $nncip_uri );
-}
-
-# this will simplify testing
-sub _SendItemRequested {
-    my ($self, %args) = @_;
-    my $required = sub {
-        my (@k) = @_;
-        my @out = map {
-            exists $args{$_} or Carp::croak "argument {$_} is required";
-            use Data::Dumper; warn Dumper([$_ => $args{$_}]);
-            $args{$_};
-        } @k;
-        return @out if wantarray;
-        return $out[0];
-    };
-
-    return _build_xml(
-        ItemRequested => [
-            InitiationHeader => [ # The InitiationHeader, stating from- and to-agency, is mandatory.
-                FromAgencyId => [ AgencyId => $required->('from_agency') ],
-                ToAgencyId => [ AgencyId => $required->('to_agency') ],
-            ],
-            UserId => [ # The UserId must be a NLR-Id (National Patron Register) -->
-                UserIdentifierValue => $required->('userid'),
-            ],
-            ItemId => [ # The ItemId must uniquely identify the requested Item in the scope of the FromAgencyId. -->
-                        # The ToAgency may then mirror back this ItemId in a RequestItem-call to order it.-->
-                        # Note: NNCIPP do not support use of BibliographicId insted of ItemId, in this case. -->
-                ItemIdentifierType => 'Barcode',
-                ItemIdentifierValue => $required->('barcode'),
-            ],
-            RequestType => [ # The RequestType must be one of the following: -->
-                             # Physical, a loan (of a physical item, create a reservation if not available) -->
-                             # Non-Returnable, a copy of a physical item - that is not required to return -->
-                             # PhysicalNoReservation, a loan (of a physical item), do NOT create a reservation if not available -->
-                             # LII, a patron initialized physical loan request, threat as a physical loan request -->
-                             # LIINoReservation, a patron initialized physical loan request, do NOT create a reservation if not available -->
-                             # Depot, a border case; some librarys get a box of (foreign language) books from the national library -->
-                             # If your library dont recive 'Depot'-books; just respond with a \"Unknown Value From Known Scheme\"-ProblemType -->
-                $required->('request_type'),
-            ],
-            RequestScopeType => [ # RequestScopeType is mandatory and must be \"Title\", signaling that the request is on title-level -->
-                                  # (and not Item-level - even though the request was on a Id that uniquely identify the requested Item) -->
-                "Title",
-            ],
-            ItemOptionalFields => [ # Include ItemOptionalFields.BibliographicDescription if you wish to recive Bibliographic data in the response -->
-                BibliographicDescription => [ # BibliographicDescription is used, as needed, to supplement the ItemId -->
-                    %{$required->('bibliographic_description')},
-                ],
-            ],
-        ]
-    );
 }
 
 =head1 INTERNAL SUBROUTINES
@@ -215,64 +165,6 @@ sub _send_message {
     }
 
 }
-
-=head2 _build_xml
-
-Build a proper NCIP XML document (with niso.org namespaces) from an Array references tree
-
-e.g.:
-
-    _build_xml(
-        ItemRequest => [
-            Foo => "foo",
-        ]);
-
-will return:
-
-    <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-    <ns1:NCIPMessage xmlns:ns1="http://www.niso.org/2008/ncip" ns1:version="http://www.niso.org/schemas/ncip/v2_02/ncip_v2_02.xsd">
-      <ns1:ItemRequest>
-        <ns1:Foo>foo</ns1:Foo>
-      </ns1:ItemRequest>
-    </ns1:NCIPMessage>
-
-=cut
-
-sub _build_xml {
-    my (@data) = @_;
-
-    my $doc = XML::LibXML::Document->new('1.0', 'UTF-8');
-    $doc->setStandalone(1);
-
-    #my $ns = XML::LibXML::Namespace->new('http://www.niso.org/2008/ncip');
-
-    my $root = $doc->createElement('NCIPMessage');
-    $root->setNamespace('http://www.niso.org/2008/ncip' => 'ns1' => 1);
-    $root->setAttributeNS('http://www.niso.org/2008/ncip' => 'version' => 'http://www.niso.org/schemas/ncip/v2_02/ncip_v2_02.xsd');
-    $doc->setDocumentElement($root);
-
-    my $appender; $appender = sub {
-        my ($parent, $data) = @_;
-        if (ref $data) {
-            my @list = @$data;
-            while(@list) {
-                my $name = shift @list;
-                my $data = shift @list;
-
-                my $node = $doc->createElement($name);
-                $node->setNamespace('http://www.niso.org/2008/ncip' => ns1 => 1);
-                $parent->appendChild($node);
-                $appender->($node, $data) if $data;
-            }
-        } else {
-            $parent->appendText($data);
-        }
-    };
-    $appender->($root, \@data);
-
-    return $doc;
-}
-
 
 
 =head2 _get_langcode_from_bibliodata

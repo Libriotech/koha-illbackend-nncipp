@@ -125,6 +125,7 @@ sub name {
     return "NNCIPP";
 }
 
+# deprecated, use NNCIPP.pm
 sub _ncip {
     my ($self, @data) = @_;
     my $xml = _build_xml(@data);
@@ -137,7 +138,7 @@ sub _ncip {
     my $res = $self->{ua}->request($req);
 }
 
-
+# deprecated, use XML.pm
 # expect a tree of ARRAYs, returns a NCIP compliant xml object
 sub _build_xml {
     my (@data) = @_;
