@@ -115,7 +115,49 @@ sub RequestItem {
         exists $args{$k} or Carp::croak "argument {$k} is required";
         $args{$k};
     };
-    die "NIY";
+    die "NIY"; # TODO
+}
+
+sub CancelRequestItem {
+    my ($self, %args) = @_;
+    my $required = sub {
+        my ($k) = @_;
+        exists $args{$k} or Carp::croak "argument {$k} is required";
+        $args{$k};
+    };
+
+    return $self->build(
+        CancelRequestItem => [ # Usage in NNCIPP 1.0 is in use-case 5, call #10: Home library informs Owner library that the requested Ioan is canceled by the Patron -->
+            InitiationHeader => [ # The InitiationHeader, stating from- and to-agency, is mandatory.
+                FromAgencyId => [ AgencyId => $required->('from_agency') ], # HOME
+                ToAgencyId => [ AgencyId => $required->('to_agency') ], # OWNER
+            ],
+            RequestId => [ # The RequestId must be the one created by the initializing AgencyId in call #1 -->
+                AgencyId => $required->('cardnumber'),
+                RequestIdentifierValue => $required->('request_id'),
+            ],
+            ItemId => [ # The ItemId must uniquely identify the requested Item in the scope of the ToAgencyId -->
+                        # All Items must have a scannable Id either a RFID or a Barcode or Both. -->
+                        # In the case of both, start with the Barcode, use colon and no spaces as delimitor.-->
+                ItemIdentifierType => 'Barcode',
+                ItemIdentifierValue => $required->('barcode'),
+            ],
+            UserId => [ UserIdentifierValue => $required->('userid') ],
+            RequestType => [ # The RequestType must be one of the following: -->
+                             # Physical, a loan (of a physical item, create a reservation if not available) -->
+                             # Non-Returnable, a copy of a physical item - that is not required to return -->
+                             # PhysicalNoReservation, a loan (of a physical item), do NOT create a reservation if not available -->
+                             # LII, a patron initialized physical loan request, threat as a physical loan request -->
+                             # LIINoReservation, a patron initialized physical loan request, do NOT create a reservation if not available -->
+                             # Depot, a border case; some librarys get a box of (foreign language) books from the national library -->
+                             # If your library dont recive 'Depot'-books; just respond with a \"Unknown Value From Known Scheme\"-ProblemType -->
+                $required->('request_type'),
+            ],
+            Ext => [
+                NoticeContent => $required->('cancelled_by'),
+            ],
+        ],
+    );
 }
 
 sub ItemShipped {
