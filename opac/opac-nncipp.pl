@@ -61,7 +61,8 @@ if ( $op eq 'order' && $biblionumber ne '' ) {
 
     # FIXME Add more checks to make sure the item can be ordered through ILL
 
-    # FIXME Not sure if we should save the request, or just send ItemRequested and wait for RequestItem?
+    # FIXME We should save the request, so we can troubleshoot. But these saved requests should be hidden by default.
+    # FIXME status = O_ITEMREQUESTED
     # my $illrequest   = Koha::Illrequests->new;
     # my $request = $illrequest->request({
     #     'biblionumber' => $biblionumber,

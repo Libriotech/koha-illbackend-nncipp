@@ -58,6 +58,119 @@ sub new {
     return $self;
 }
 
+=head2 SendRequestItem
+
+Send a RequestItem to another library.
+
+    my $nncipp = Koha::Illbackends::NNCIPP::NNCIPP->new();
+    my $resp = $nncipp->SendRequestItem({
+        'illrequest_id'       => $req->illrequest_id,
+        'borrowernumber'      => $req->borrowernumber,
+        'ordered_from'        => $req->illrequestattributes->find({ type => 'ordered_from' })->value,
+        'ItemIdentifierType'  => $req->illrequestattributes->find({ type => 'ItemIdentifierType' })->value,
+        'ItemIdentifierValue' => $req->illrequestattributes->find({ type => 'ItemIdentifierValue' })->value,
+        'RequestType'         => $req->illrequestattributes->find({ type => 'RequestType' })->value,
+    });
+
+=cut
+
+sub SendRequestItem {
+
+    my ( $self, $args ) = @_;
+
+    my %types = (
+        'barcode' => 'Barcode',
+        'isbn'    => 'ISBN',
+        'issn'    => 'ISSN',
+        'ean'     => 'EAN',
+        'rfid'    => 'RFID',
+    );
+
+    # Construct ItemIdentifierType and ItemIdentifierValue
+    my $ItemIdentifierType  = $types{ lc $args->{'ItemIdentifierType'} };
+    my $ItemIdentifierValue = $args->{'ItemIdentifierValue'};
+#    if ( $args->{'barcode'} ne '' ) {
+#        $itemidentifiertype  .= 'Barcode';
+#        $itemidentifiervalue .= $args->{'barcode'};
+#    }
+#    if ( $args->{'barcode'} ne '' && $args->{'rfid'} ne '' ) {
+#        $itemidentifiertype  .= ';';
+#        $itemidentifiervalue .= ';';
+#    }
+#    if ( $args->{'rfid'} ne '' ) {
+#        $itemidentifiertype  .= 'RFID';
+#        $itemidentifiervalue .= $args->{'rfid'};
+#    }
+
+    my $msg = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>
+    <ns1:NCIPMessage xmlns:ns1=\"http://www.niso.org/2008/ncip\" ns1:version=\"http://www.niso.org/schemas/ncip/v2_02/ncip_v2_02.xsd\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://www.niso.org/2008/ncip http://www.niso.org/schemas/ncip/v2_02/ncip_v2_02.xsd\">
+        <!-- Usage in NNCIPP 1.0 is in use-case 2: A user request a spesific uniqe item, from a external library.  -->
+        <ns1:RequestItem>
+            <!-- The InitiationHeader, stating from- and to-agency, is mandatory. -->
+            <ns1:InitiationHeader>
+                <!-- Home Library -->
+                <ns1:FromAgencyId>
+                    <ns1:AgencyId>NO-" . C4::Context->preference('ILLISIL') . "</ns1:AgencyId>
+                </ns1:FromAgencyId>
+                <!-- Owner Library -->
+                <ns1:ToAgencyId>
+                    <ns1:AgencyId>NO-" . $args->{'ordered_from'} . "</ns1:AgencyId>
+                </ns1:ToAgencyId>
+            </ns1:InitiationHeader>
+            <!-- The UserId must be a NLR-Id (National Patron Register) -->
+            <ns1:UserId>
+                <ns1:UserIdentifierValue>" . $args->{'cardnumber'} . "</ns1:UserIdentifierValue>
+            </ns1:UserId>";
+    if ( $ItemIdentifierType eq 'Barcode' ) {
+            # Barcode or FIXME RFID
+            $msg .= "<!-- The ItemId must uniquely identify the requested Item in the scope of the ToAgencyId -->
+                    <ns1:ItemId>
+                        <!-- All Items must have a scannable Id either a RFID or a Barcode or Both. -->
+                        <!-- In the case of both, start with the Barcode, use colon and no spaces as delimitor.-->
+                        <ns1:ItemIdentifierType>" . $ItemIdentifierType . "</ns1:ItemIdentifierType>
+                        <ns1:ItemIdentifierValue>" . $ItemIdentifierValue . "</ns1:ItemIdentifierValue>
+                    </ns1:ItemId>";
+    } else {
+            # ISBN, ISSN, EAN eller FIXME OwnerLocalRecordID
+            $msg .= "<ns1:BibliographicId>
+                        <ns1:BibliographicRecordId>
+                            <ns1:BibliographicRecordIdentifier>" . $ItemIdentifierValue . "</ns1:BibliographicRecordIdentifier>
+                            <!-- Supported BibliographicRecordIdentifierCode is OwnerLocalRecordID, ISBN, ISSN and EAN -->
+                            <!-- Supported values of OwnerLocalRecordID is simplyfied to 'LocalId' - each system know it's own values. -->
+                            <ns1:BibliographicRecordIdentifierCode>" . $ItemIdentifierType . "</ns1:BibliographicRecordIdentifierCode>
+                        </ns1:BibliographicRecordId>
+                    </ns1:BibliographicId>";
+    }
+    $msg .= "<!-- The RequestId must be created by the initializing AgencyId and it has to be globaly uniqe -->
+            <ns1:RequestId>
+                <!-- The initializing AgencyId must be part of the RequestId -->
+                <ns1:AgencyId>NO-" . C4::Context->preference('ILLISIL') . "</ns1:AgencyId>
+                <!-- The RequestIdentifierValue must be part of the RequestId-->
+                <ns1:RequestIdentifierValue>" . $args->{'illrequest_id'} . "</ns1:RequestIdentifierValue>
+            </ns1:RequestId>
+            <!-- The RequestType must be one of the following: -->
+            <!-- Physical, a loan (of a physical item, create a reservation if not available) -->
+            <!-- Non-Returnable, a copy of a physical item - that is not required to return -->
+            <!-- PhysicalNoReservation, a loan (of a physical item), do NOT create a reservation if not available -->
+            <!-- LII, a patron initialized physical loan request, threat as a physical loan request -->
+            <!-- LIINoReservation, a patron initialized physical loan request, do NOT create a reservation if not available -->
+            <!-- Depot, a border case; some librarys get a box of (foreign language) books from the national library -->
+            <!-- If your library dont recive 'Depot'-books; just respond with a \"Unknown Value From Known Scheme\"-ProblemType -->
+            <ns1:RequestType>" . $args->{'RequestType'} . "</ns1:RequestType>
+            <!-- RequestScopeType is mandatory and must be \"Title\", signaling that the request is on title-level -->
+            <!-- (and not Item-level - even though the request was on a Id that uniquely identify the requested Item) -->
+            <ns1:RequestScopeType>Title</ns1:RequestScopeType>
+            <!-- Include ItemOptionalFields.BibliographicDescription if you wish to recive Bibliographic data in the response -->
+            <ns1:ItemOptionalFields>
+                <ns1:BibliographicDescription/>
+            </ns1:ItemOptionalFields>
+        </ns1:RequestItem>
+    </ns1:NCIPMessage>";
+
+    return _send_message( 'RequestItem', $msg, GetBorrowerAttributeValue( $args->{'borrowernumber'}, 'nncip_uri' ) );
+
+}
+
 =head2 SendItemRequested
 
 Typically triggered when a library has logged into the OPAC and placed an ILL
@@ -158,9 +271,190 @@ sub SendItemRequested {
         </ns1:ItemRequested>
     </ns1:NCIPMessage>";
 
-    return _send_message( 'ItemRequested', $msg, $nncip_uri );
+    return _send_message( 'CancelRequestItem', $msg, $nncip_uri );
 
 }
+
+=head2 SendCancelRequestItem
+
+Send a CancelRequestItem message.
+
+=cut
+
+sub SendCancelRequestItem {
+
+
+    my ( $self, $args ) = @_;
+
+#    my $res = _ncip(
+#        CancelRequestItem => [
+#            InitiationHeader => [
+#                FromAgencyId => [
+#                    AgencyId => $args->{'FromAgencyId'},
+#                ],
+#                ToAgencyId => [
+#                    AgencyId => $args->{'ToAgencyId'},
+#                ],
+#            ],
+#            UserId => [
+#                UserIdentifierValue => $args->{'UserIdentifierValue'},
+#            ],
+#            RequestId => [
+#                AgencyId => $args->{'RequestAgencyId'},
+#                RequestIdentifierValue => $args->{'RequestIdentifierValue'},
+#            ],
+#            ItemId => [
+#                ItemIdentifierType => $args->{'ItemIdentifierType'},
+#                ItemIdentifierValue => $args->{'ItemIdentifierValue'},
+#            ],
+#            RequestType => $args->{'RequestType'},
+#            Ext => [
+#                NoticeContent => 'CancelledBy.Borrower',
+#            ],
+#        ],
+#    );
+
+    my $msg = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
+        <ns1:NCIPMessage xmlns:ns1=\"http://www.niso.org/2008/ncip\" ns1:version=\"http://www.niso.org/schemas/ncip/v2_02/ncip_v2_02.xsd\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://www.niso.org/2008/ncip http://www.niso.org/schemas/ncip/v2_02/ncip_v2_02.xsd\">
+            <!-- Usage in NNCIPP 1.0 is in use-case 5, call #10: Home library informs Owner library that the requested Ioan is canceled by the Patron -->
+            <ns1:CancelRequestItem>
+                <!-- The InitiationHeader, stating from- and to-agency, is mandatory. -->
+                <ns1:InitiationHeader>
+                    <!-- Home Library -->
+                    <ns1:FromAgencyId>
+                        <ns1:AgencyId>NO-" . $args->{'FromAgencyId'} . "</ns1:AgencyId>
+                    </ns1:FromAgencyId>
+                    <!-- Owner Library -->
+                    <ns1:ToAgencyId>
+                        <ns1:AgencyId>NO-" . $args->{'ToAgencyId'} . "</ns1:AgencyId>
+                    </ns1:ToAgencyId>
+                </ns1:InitiationHeader>
+                <!-- The UserId must be uniqe in the scope of Home Library -->
+                <ns1:UserId>
+                    <ns1:UserIdentifierValue>" . $args->{'UserIdentifierValue'} . "</ns1:UserIdentifierValue>
+                </ns1:UserId>
+                <!-- The RequestId must be the one created by the initializing AgencyId in call #1 -->
+                <ns1:RequestId>
+                    <ns1:AgencyId>" . $args->{'RequestAgencyId'} . "</ns1:AgencyId>
+                    <ns1:RequestIdentifierValue>" . $args->{'RequestIdentifierValue'} . "</ns1:RequestIdentifierValue>
+                </ns1:RequestId>
+                <!-- The ItemId must uniquely identify the requested Item in the scope of the ToAgencyId -->
+                <ns1:ItemId>
+                    <!-- All Items must have a scannable Id either a RFID or a Barcode or Both. -->
+                    <!-- In the case of both, start with the Barcode, use colon and no spaces as delimitor.-->
+                    <ns1:ItemIdentifierType>" . $args->{'ItemIdentifierType'} . "</ns1:ItemIdentifierType>
+                    <ns1:ItemIdentifierValue>" . $args->{'ItemIdentifierValue'} . "</ns1:ItemIdentifierValue>
+                </ns1:ItemId>
+                <!-- The RequestType must be one of the following: -->
+                <!-- Physical, a loan (of a physical item, create a reservation if not available) -->
+                <!-- Non-Returnable, a copy of a physical item - that is not required to return -->
+                <!-- PhysicalNoReservation, a loan (of a physical item), do NOT create a reservation if not available -->
+                <!-- LII, a patron initialized physical loan request, threat as a physical loan request -->
+                <!-- LIINoReservation, a patron initialized physical loan request, do NOT create a reservation if not available -->
+                <!-- Depot, a border case; some librarys get a box of (foreign language) books from the national library -->
+                <!-- If your library dont recive 'Depot'-books; just respond with a \"Unknown Value From Known Scheme\"-ProblemType -->
+                <ns1:RequestType>" . $args->{'RequestType'} . "</ns1:RequestType>
+                <!-- The following Ext is required by Alma -->
+                <ns1:Ext>
+                <!-- Who cancel the request? -->
+                    <!-- if (FromAgencyId == RequestId.AgencyId) => Borrower/Home -->
+                    <ns1:NoticeContent>CancelledBy.Borrower</ns1:NoticeContent>
+                    <!-- FromAgencyId ==  RequestId.AgencyId -->
+                </ns1:Ext>
+            </ns1:CancelRequestItem>
+        </ns1:NCIPMessage>";
+
+    return _send_message( 'CancelRequestItem', $msg, GetBorrowerAttributeValue( $args->{'remote_library'}, 'nncip_uri' ) );
+
+}
+
+#####
+##### _ncip, _build_xml and _parse_xml were implemented by oha and seems 
+##### preferable to _send_message further down
+#####
+
+sub _ncip {
+    my ($self, @data) = @_;
+    my $xml = _build_xml(@data);
+    my $req = HTTP::Request->new(
+        #POST => 'http://koha.ncip.bibkat.no/', # TODO the url should be set during ->create()
+        POST => 'http://127.0.0.1:3000/', # TODO test
+        [],
+        $xml->toString(1),
+    );
+    my $res = $self->{ua}->request($req);
+}
+
+
+# expect a tree of ARRAYs, returns a NCIP compliant xml object
+sub _build_xml {
+    my (@data) = @_;
+
+    my $doc = XML::LibXML::Document->new('1.0', 'UTF-8');
+    $doc->setStandalone(1);
+
+    #my $ns = XML::LibXML::Namespace->new('http://www.niso.org/2008/ncip');
+
+    my $root = $doc->createElement('NCIPMessage');
+    $root->setNamespace('http://www.niso.org/2008/ncip' => 'ns1' => 1);
+    $root->setAttributeNS('http://www.niso.org/2008/ncip' => 'version' => 'http://www.niso.org/schemas/ncip/v2_02/ncip_v2_02.xsd');
+    $doc->setDocumentElement($root);
+
+    my $appender; $appender = sub {
+        my ($parent, $data) = @_;
+        if (ref $data) {
+            my @list = @$data;
+            while(@list) {
+                my $name = shift @list;
+                my $data = shift @list;
+
+                my $node = $doc->createElement($name);
+                $node->setNamespace('http://www.niso.org/2008/ncip' => ns1 => 1);
+                $parent->appendChild($node);
+                $appender->($node, $data) if $data;
+            }
+        } else {
+            $parent->appendText($data);
+        }
+    };
+    $appender->($root, \@data);
+
+    return $doc;
+}
+
+# expect a string, parse it as xml and return a HoH (with arrays where needed)
+sub _parse_xml {
+    my ($s) = @_;
+    my $doc = XML::LibXML->load_xml(string => $s);
+    my $e = $doc->documentElement();
+
+    my $parser; $parser = sub {
+        my ($e) = @_;
+        my $out = {};
+        for my $node ($e->nonBlankChildNodes()) {
+            my $name = $node->nodeName();
+            if ($name eq '#text') {
+                my $t = $node->textContent;
+                $t =~ s{^\s+}{}; $t =~ s{\s+$}{};
+                return $t;
+            }
+            $name =~ s{^\w+:}{} or next;
+            my $child = $parser->($node);
+            push @{ $out->{$name}//=[] }, $child;
+        }
+
+        # collapse single element lists (TODO, this might be not the best in some cases, but there is not much we can do)
+        for (values %$out) {
+            $_ = $_->[0] if scalar(@$_)<2;
+        }
+        return $out;
+    };
+    $parser->($e);
+}
+
+#####
+##### _send_message was implemented by Magnus a long time ago
+#####
 
 =head1 INTERNAL SUBROUTINES
 
@@ -174,7 +468,7 @@ sub _send_message {
 
     my ( $req, $msg, $endpoint ) = @_;
 
-    warn "talking to $endpoint";
+    # warn "talking to $endpoint";
 
     logaction( 'ILL', $req, undef, $msg );
     my $response = HTTP::Tiny->new->request( 'POST', $endpoint, { 'content' => $msg } );

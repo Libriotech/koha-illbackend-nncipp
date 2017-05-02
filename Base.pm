@@ -24,6 +24,9 @@ use XML::LibXML;
 use LWP::UserAgent;
 use HTTP::Request;
 
+use C4::Members;
+
+use Koha::Illbackends::NNCIPP::NNCIPP;
 use Koha::Illrequestattribute;
 use Koha::Patrons;
 
@@ -125,85 +128,6 @@ sub name {
     return "NNCIPP";
 }
 
-sub _ncip {
-    my ($self, @data) = @_;
-    my $xml = _build_xml(@data);
-    my $req = HTTP::Request->new(
-        #POST => 'http://koha.ncip.bibkat.no/', # TODO the url should be set during ->create()
-        POST => 'http://127.0.0.1:3000/', # TODO test
-        [],
-        $xml->toString(1),
-    );
-    my $res = $self->{ua}->request($req);
-}
-
-
-# expect a tree of ARRAYs, returns a NCIP compliant xml object
-sub _build_xml {
-    my (@data) = @_;
-
-    my $doc = XML::LibXML::Document->new('1.0', 'UTF-8');
-    $doc->setStandalone(1);
-
-    #my $ns = XML::LibXML::Namespace->new('http://www.niso.org/2008/ncip');
-
-    my $root = $doc->createElement('NCIPMessage');
-    $root->setNamespace('http://www.niso.org/2008/ncip' => 'ns1' => 1);
-    $root->setAttributeNS('http://www.niso.org/2008/ncip' => 'version' => 'http://www.niso.org/schemas/ncip/v2_02/ncip_v2_02.xsd');
-    $doc->setDocumentElement($root);
-
-    my $appender; $appender = sub {
-        my ($parent, $data) = @_;
-        if (ref $data) {
-            my @list = @$data;
-            while(@list) {
-                my $name = shift @list;
-                my $data = shift @list;
-
-                my $node = $doc->createElement($name);
-                $node->setNamespace('http://www.niso.org/2008/ncip' => ns1 => 1);
-                $parent->appendChild($node);
-                $appender->($node, $data) if $data;
-            }
-        } else {
-            $parent->appendText($data);
-        }
-    };
-    $appender->($root, \@data);
-
-    return $doc;
-}
-
-# expect a string, parse it as xml and return a HoH (with arrays where needed)
-sub _parse_xml {
-    my ($s) = @_;
-    my $doc = XML::LibXML->load_xml(string => $s);
-    my $e = $doc->documentElement();
-
-    my $parser; $parser = sub {
-        my ($e) = @_;
-        my $out = {};
-        for my $node ($e->nonBlankChildNodes()) {
-            my $name = $node->nodeName();
-            if ($name eq '#text') {
-                my $t = $node->textContent;
-                $t =~ s{^\s+}{}; $t =~ s{\s+$}{};
-                return $t;
-            }
-            $name =~ s{^\w+:}{} or next;
-            my $child = $parser->($node);
-            push @{ $out->{$name}//=[] }, $child;
-        }
-
-        # collapse single element lists (TODO, this might be not the best in some cases, but there is not much we can do)
-        for (values %$out) {
-            $_ = $_->[0] if scalar(@$_)<2;
-        }
-        return $out;
-    };
-    $parser->($e);
-}
-
 =head3 metadata
 
 Return a hashref containing canonical values from the key/value
@@ -215,11 +139,19 @@ sub metadata {
     my ( $self, $request ) = @_;
     my $attrs = $request->illrequestattributes;
     return {
-        ID     => $attrs->find({ type => 'id' })->value,
-        Title  => $attrs->find({ type => 'title' })->value,
-        Author => $attrs->find({ type => 'author' })->value,
-        Status => $attrs->find({ type => 'status' })->value,
-        OrderedFrom => $attrs->find({ type => 'ordered_from' })->value,
+        # ID     => $attrs->find({ type => 'id' })->value,
+        # Title  => $attrs->find({ type => 'title' })->value,
+        # Author => $attrs->find({ type => 'author' })->value,
+        # Status => $attrs->find({ type => 'status' })->value,
+        # OrderedFrom => $attrs->find({ type => 'ordered_from' })->value,
+        ItemIdentifierType  => $attrs->find({ type => 'ItemIdentifierType' })->value,
+        ItemIdentifierValue => $attrs->find({ type => 'ItemIdentifierValue' })->value,
+        # Language            => $attrs->find({ type => 'Language' })->value,
+        # PlaceOfPublication  => $attrs->find({ type => 'PlaceOfPublication' })->value,
+        # PublicationDate     => $attrs->find({ type => 'PublicationDate' })->value,
+        # Publisher           => $attrs->find({ type => 'Publisher' })->value,
+        RequestScopeType    => $attrs->find({ type => 'RequestScopeType' })->value,
+        RequestType         => $attrs->find({ type => 'RequestType' })->value,
     }
 }
 
@@ -230,22 +162,115 @@ sub metadata {
 
 sub status_graph {
     return {
-        ORDERED => {
+
+        # Status where we are Home Library
+        H_ITEMREQUESTED => {
             prev_actions => [ ],                           # Actions containing buttons
                                                            # leading to this status
-            id             => 'ORDERED',                   # ID of this status
-            name           => 'Ordered',                   # UI name of this status
-            ui_method_name => 'Ordered',                   # UI name of method leading
+            id             => 'H_ITEMREQUESTED',                   # ID of this status
+            name           => 'Item Requested',                   # UI name of this status
+            ui_method_name => 'Item Requested',                   # UI name of method leading
                                                            # to this status
             method         => 'create',                    # method to this status
-            next_actions   => [ 'REQ', 'GENREQ', 'KILL' ], # buttons to add to all
+            next_actions   => [ 'H_REQUESTITEM', 'KILL' ], # buttons to add to all
                                                            # requests with this status
             ui_method_icon => 'fa-plus',                   # UI Style class
+        },
+        H_REQUESTITEM => {
+            prev_actions => [ 'H_ITEMREQUESTED' ],                           # Actions containing buttons
+                                                           # leading to this status
+            id             => 'H_REQUESTITEM',                   # ID of this status
+            name           => 'Request Item',                   # UI name of this status
+            ui_method_name => 'Request Item',                   # UI name of method leading
+                                                           # to this status
+            method         => 'requestitem',                    # method to this status
+            next_actions   => [ 'H_REQUESTITEM' ], # buttons to add to all
+                                                           # requests with this status
+            ui_method_icon => 'fa-send-o',                   # UI Style class
+        },
+        H_CANCELREQUESTITEM => {
+            prev_actions => [ 'H_REQUESTITEM' ],                           # Actions containing buttons
+                                                           # leading to this status
+            id             => 'H_REQUESTITEM',                   # ID of this status
+            name           => 'Cancel Request Item',                   # UI name of this status
+            ui_method_name => 'Cancel Request Item',                   # UI name of method leading
+                                                           # to this status
+            method         => 'cancelrequestitem',                    # method to this status
+            next_actions   => [ 'KILL' ], # buttons to add to all
+                                                           # requests with this status
+            ui_method_icon => 'fa-trash',                   # UI Style class
+        },
+        H_DONE => {
+            prev_actions => [ 'H_CANCELREQUESTITEM' ],                           # Actions containing buttons
+                                                           # leading to this status
+            id             => 'H_DONE',                   # ID of this status
+            name           => 'Done',                   # UI name of this status
+            ui_method_name => 'Done',                   # UI name of method leading
+                                                           # to this status
+            method         => '',                    # method to this status
+            next_actions   => [], # buttons to add to all
+                                                           # requests with this status
+            ui_method_icon => 'fa-trash',                   # UI Style class
+        },
+
+        # Statuses where we are Owner Library
+        O_ITEMREQUESTED => {
+            prev_actions => [ ],                           # Actions containing buttons
+                                                           # leading to this status
+            id             => 'O_ITEMREQUESTED',                   # ID of this status
+            name           => 'Item Requested',                   # UI name of this status
+            ui_method_name => 'Item Requested',                   # UI name of method leading
+                                                           # to this status
+            method         => 'create',                    # method to this status
+            next_actions   => [ 'O_REQUESTITEM', 'KILL' ], # buttons to add to all
+                                                           # requests with this status
+            ui_method_icon => 'fa-plus',                   # UI Style class
+        },
+        O_REQUESTITEM => {
+            prev_actions => [ 'O_ITEMREQUESTED' ],                           # Actions containing buttons
+                                                           # leading to this status
+            id             => 'O_REQUESTITEM',                   # ID of this status
+            name           => 'Request Item',                   # UI name of this status
+            ui_method_name => 'Request Item',                   # UI name of method leading
+                                                           # to this status
+            method         => 'requestitem',                    # method to this status
+            next_actions   => [ 'KILL' ], # buttons to add to all
+                                                           # requests with this status
+            ui_method_icon => 'fa-send-o',                   # UI Style class
         },
     };
 }
 
-=head3 create
+=head3 requestitem
+
+Send a RequestItem. This can be initiated in one of two ways:
+
+1. We have received an ItemRequested and respond by sending RequestItem back. 
+This will be done autmatically by the cronjob return_itemrequested.pl
+
+2. TODO We have entered the necesarry data into a form and send the request with
+the data we entered. NOT YET IMPLEMENTED.
+
+=cut
+
+sub requestitem {
+
+    my ( $self, $params ) = @_;
+    my $stage = $params->{other}->{stage};
+
+    return {
+        error   => 0,
+        status  => '',
+        message => '',
+        method  => 'requestitem',
+        stage   => 'commit',
+        next    => 'illview',
+        # value   => $request_details,
+    };
+
+}
+
+=head3 create # FIXME Rename to itemrequested (?)
 
   my $response = $backend->create({
       request    => $requestdetails,
@@ -318,6 +343,82 @@ sub create {
         next    => 'illview',
         # value   => $request_details,
     };
+
+}
+
+=head3 cancelrequestitem
+
+Send a CancelRequestItem to the library that we sent a RequestItem to, informing
+them we are no longer interested in the requested item.
+
+The home library sends this to the owner library.
+
+=cut
+
+sub cancelrequestitem {
+
+    my ( $self, $params ) = @_;
+
+warn "hitting cancelrequestitem";
+
+    # Send a CancelRequestItem to the library we made the RequestItem to
+    my $nncipp = Koha::Illbackends::NNCIPP::NNCIPP->new();
+    my $req = $params->{request};
+    my $patron = GetMember( borrowernumber => $req->borrowernumber );
+    my $resp = $nncipp->SendCancelRequestItem({
+        'remote_library'         => $req->illrequestattributes->find({ type => 'ordered_from_borrowernumber' })->value,
+        'FromAgencyId'           => C4::Context->preference('ILLISIL'),
+        'ToAgencyId'             => $req->illrequestattributes->find({ type => 'ordered_from' })->value,
+        'UserIdentifierValue'    => $patron->{'cardnumber'},
+        'RequestAgencyId'        => C4::Context->preference('ILLISIL'),
+        'RequestIdentifierValue' => $req->illrequest_id,
+        'ItemIdentifierType'     => $req->illrequestattributes->find({ type => 'ItemIdentifierType' })->value,
+        'ItemIdentifierValue'    => $req->illrequestattributes->find({ type => 'ItemIdentifierValue' })->value,
+        'RequestType'            => $req->illrequestattributes->find({ type => 'RequestType' })->value,
+    });
+
+    return {
+        error   => 0,
+        status  => '',
+        message => '',
+        method  => 'cancelrequestitem',
+        stage   => 'commit',
+        next    => 'illview',
+        # value   => $request_details,
+    };
+
+#    ### OLD ###
+
+#    # Get data about the "other" library, from which we have requested the loan
+#    my $request = $args->{'request'};
+#    my $remote_library_id = $request->status->getProperty('ordered_from');
+#    my $remote_library = GetMemberDetails( $remote_library_id );
+
+#    # Get data about the person for whom the initial request was made
+#    my $borrower_id = $request->status->getProperty('borrowernumber');
+#    my $borrower    = GetMemberDetails( $borrower_id );
+
+#    my ( $remote_id_agency, $remote_id_id ) = split /:/, $request->status->getProperty('remote_id');
+
+#    # Set up the template for the message
+#    my $tmplbase = 'ill/nncipp/CancelRequestItem.xml';
+#    my $language = 'en'; # _get_template_language($query->cookie('KohaOpacLanguage'));
+#    my $path     = C4::Context->config('intrahtdocs'). "/prog/". $language;
+#    my $filename = "$path/modules/" . $tmplbase;
+#    my $template = C4::Templates->new( 'intranet', $filename, $tmplbase );
+#    $template->param(
+#        'FromAgency'        => C4::Context->preference('ILLISIL'),
+#        'ToAgency'          => $remote_library->{'cardnumber'},
+#        'UserId'            => $borrower->{'cardnumber'},
+#        'AgencyId'          => $remote_id_agency,
+#        'RequestId'         => $remote_id_id,
+#        'ItemIdentifier'    => $request->status->getProperty('remote_barcode'),
+#        'RequestType'       => $request->status->getProperty('reqtype'),
+#    );
+#    my $msg = $template->output();
+
+#    my $nncip_uri = GetBorrowerAttributeValue( $remote_library_id, 'nncip_uri' );
+#    return _send_message( 'CancelRequestItem', $msg, $nncip_uri );
 
 }
 
