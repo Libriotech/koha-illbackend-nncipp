@@ -46,6 +46,15 @@ NNCIPP - Norwegian NCIP Protocol XML Adapter
 
 Utility class that convert simple data to LibXML documents object
 
+=head2 new
+
+=cut
+
+sub new {
+    my ($type, %args) = @_;
+    return bless {%args}, $type;
+}
+
 
 =head2 SendItemRequested
 
