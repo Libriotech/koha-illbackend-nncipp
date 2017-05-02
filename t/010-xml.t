@@ -41,34 +41,74 @@ is($parsed->findvalue('//ns1:ToAgencyId//*'), 'NO-to', 'to agency');
 # TODO test for an error
 
 
+subtest ItemRequested => sub {
+    my %args = (
+        from_agency => 'NO-from',
+        to_agency => 'NO-to',
+        userid => 'user001',
+        barcode => '1234567',
+        request_type => 'Physical',
+        bibliographic_description => {
+            Author => 'U.N. Owen',
+        },
+    );
+    my $item_requested = $x->ItemRequested(%args);
 
+    isa_ok($item_requested, 'XML::LibXML::Document');
 
-# ItemRequested
+    my $item_requested_txt = $item_requested->toString(1);
+    like($item_requested_txt, qr/U\.N\. Owen/, "Author is present in the XML as text");
+    is($item_requested->findvalue('//ns1:ItemIdentifierValue'), '1234567', 'barcode');
 
-my %args = (
-    from_agency => 'NO-from',
-    to_agency => 'NO-to',
-    userid => 'user001',
-    barcode => '1234567',
-    request_type => 'Physical',
-    bibliographic_description => {
-        Author => 'U.N. Owen',
-    },
-);
-my $item_requested = $x->ItemRequested(%args);
+    for my $k (keys %args) {
+        my %missing = %args;
+        delete $missing{$k};
+        must_fail(sub {
+            $x->ItemRequested(%missing);
+        }, "missing arguments: '$k'");
+    }
+};
 
-isa_ok($item_requested, 'XML::LibXML::Document');
+subtest ItemShipped => sub {
+    my %args = (
+        request_id => 'R#123',
+        from_agency => 'NO-from',
+        to_agency => 'NO-to',
+        userid => 'user001',
+        barcode => '1234567',
+        cardnumber => 'NL-12345',
+        date_shipped => "2015-11-22",
+        bibliographic_description => {
+            Author => 'U.N. Owen',
+        },
+        address => {
+            street => 'Narrowgata',
+            city => 'Townia',
+            country => 'Norway',
+            zipcode => '0123',
+        },
+        shipped_by => 'Posten',
+    );
+    my $item_requested = $x->ItemShipped(%args);
 
-my $item_requested_txt = $item_requested->toString(1);
-like($item_requested_txt, qr/U\.N\. Owen/, "Author is present in the XML as text");
-is($item_requested->findvalue('//ns1:ItemIdentifierValue'), '1234567', 'barcode');
+    isa_ok($item_requested, 'XML::LibXML::Document');
 
-for my $k (keys %args) {
-    my %missing = %args;
-    delete $missing{$k};
+    my $item_requested_txt = $item_requested->toString(1);
+    like($item_requested_txt, qr/U\.N\. Owen/, "Author is present in the XML as text");
+    is($item_requested->findvalue('//ns1:ItemIdentifierValue'), '1234567', 'barcode');
+
+    for my $k (keys %args) {
+        my %missing = %args;
+        delete $missing{$k};
+        must_fail(sub {
+            $x->ItemShipped(%missing);
+        }, "missing arguments: '$k'");
+    }
+
     must_fail(sub {
-        $x->ItemRequested();
-    }, "missing arguments: '$k'");
-}
+        local $args{date_shipped} = 'Jun 3rd, 2003';
+        $x->ItemShipped(%args);
+    }, "not iso date");
+};
 
 done_testing();
