@@ -3,6 +3,8 @@ use warnings;
 
 package Koha::Illbackends::NNCIPP::XML;
 
+use XML::LibXML;
+use Carp;
 
 # This file is part of Koha.
 #
@@ -51,14 +53,13 @@ Builds a SendItemRequested XML
 
 =cut
 
-sub _required($) {
-    my ($k) = @_;
-    exists $args{$k} or Carp::croak "argument {$_} is required";
-    return $args{$k};
-}
-
 sub  SendItemRequested {
     my ($self, %args) = @_;
+    my $required = sub {
+        my ($k) = @_;
+        exists $args{$k} or Carp::croak "argument {$k} is required";
+        $args{$k};
+    };
 
     return $self->build(
         ItemRequested => [
@@ -157,4 +158,4 @@ sub build {
     return $doc;
 }
 
-
+1;
