@@ -22,6 +22,7 @@ use C4::Items;
 use C4::Log;
 use C4::Members::Attributes qw ( GetBorrowerAttributeValue );
 
+use Carp;
 use HTTP::Tiny;
 use XML::Simple;
 
@@ -102,30 +103,53 @@ sub SendItemRequested {
     # Pick out the language code from 008, position 35-37
     my $lang_code = _get_langcode_from_bibliodata( $biblionumber );
 
-    return $self->_SendItemRequested($nncip_uri, $bibliodata, $barcode, $lang_code, $borrower, $userid);
+    my $xml = $self->_SendItemRequested(
+        to_agency => "NO-".$borrower->cardnumber,
+        from_agency => "NO-".C4::Context->preference('ILLISIL'),
+        userid => $userid,
+        barcode => $barcode,
+        request_type => "Physical",
+        bibliographic_description => {
+            Author => $bibliodata->{author},
+            PlaceOfPublication => $bibliodata->{place},
+            PublicationDate => $bibliodata->{copyrightdate},
+            Publisher => $bibliodata->{publishercode},
+            Title => $bibliodata->{title},
+            Language => $lang_code,
+            MediumType => "Book", # TODO map from $bibliodata->{itemtype}
+        },
+    );
+    return _send_message( 'ItemRequested', $xml->toString(1), $nncip_uri );
 }
 
+# this will simplify testing
 sub _SendItemRequested {
-    my ($self, $nncip_uri, $bibliodata, $barcode, $lang_code, $borrower, $userid) = @_;
+    my ($self, %args) = @_;
+    my $required = sub {
+        my (@k) = @_;
+        my @out = map {
+            exists $args{$_} or Carp::croak "argument {$_} is required";
+            use Data::Dumper; warn Dumper([$_ => $args{$_}]);
+            $args{$_};
+        } @k;
+        return @out if wantarray;
+        return $out[0];
+    };
 
-    my $msg = _build_xml(
+    return _build_xml(
         ItemRequested => [
             InitiationHeader => [ # The InitiationHeader, stating from- and to-agency, is mandatory.
-                FromAgencyId => [
-                    AgencyId => "NO-".C4::Context->preference('ILLISIL'),
-                ],
-                ToAgencyId => [
-                    AgencyId => "NO-".$borrower->cardnumber,
-                ],
+                FromAgencyId => [ AgencyId => $required->('from_agency') ],
+                ToAgencyId => [ AgencyId => $required->('to_agency') ],
             ],
             UserId => [ # The UserId must be a NLR-Id (National Patron Register) -->
-                UserIdentifierValue => $userid,
+                UserIdentifierValue => $required->('userid'),
             ],
             ItemId => [ # The ItemId must uniquely identify the requested Item in the scope of the FromAgencyId. -->
                         # The ToAgency may then mirror back this ItemId in a RequestItem-call to order it.-->
                         # Note: NNCIPP do not support use of BibliographicId insted of ItemId, in this case. -->
                 ItemIdentifierType => 'Barcode',
-                ItemIdentifierValue => $barcode,
+                ItemIdentifierValue => $required->('barcode'),
             ],
             RequestType => [ # The RequestType must be one of the following: -->
                              # Physical, a loan (of a physical item, create a reservation if not available) -->
@@ -135,7 +159,7 @@ sub _SendItemRequested {
                              # LIINoReservation, a patron initialized physical loan request, do NOT create a reservation if not available -->
                              # Depot, a border case; some librarys get a box of (foreign language) books from the national library -->
                              # If your library dont recive 'Depot'-books; just respond with a \"Unknown Value From Known Scheme\"-ProblemType -->
-                "Physical",
+                $required->('request_type'),
             ],
             RequestScopeType => [ # RequestScopeType is mandatory and must be \"Title\", signaling that the request is on title-level -->
                                   # (and not Item-level - even though the request was on a Id that uniquely identify the requested Item) -->
@@ -143,18 +167,11 @@ sub _SendItemRequested {
             ],
             ItemOptionalFields => [ # Include ItemOptionalFields.BibliographicDescription if you wish to recive Bibliographic data in the response -->
                 BibliographicDescription => [ # BibliographicDescription is used, as needed, to supplement the ItemId -->
-                    Author => $bibliodata->{author},
-                    PlaceOfPublication => $bibliodata->{place},
-                    PublicationDate => $bibliodata->{copyrightdate},
-                    Publisher => $bibliodata->{publishercode},
-                    Title => $bibliodata->{title},
-                    Language => $lang_code,
-                    MediumType => "Book", # TODO map from $bibliodata->{itemtype}
+                    %{$required->('bibliographic_description')},
                 ],
             ],
         ]
     );
-    return _send_message( 'ItemRequested', $msg->toString(1), $nncip_uri );
 }
 
 =head1 INTERNAL SUBROUTINES
