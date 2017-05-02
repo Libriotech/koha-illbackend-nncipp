@@ -167,4 +167,11 @@ sub build {
     return $doc;
 }
 
+sub parse {
+    my ($self, $text) = @_;
+    my $doc = XML::LibXML->load_xml(string => $text);
+
+}
+
+
 1;
