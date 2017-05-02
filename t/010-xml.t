@@ -11,7 +11,8 @@ sub must_fail {
     if (eval { $code->(); 1; }) {
         fail $label;
     } else {
-        pass "$label: $@";
+        my $err = $@; chomp($err);
+        pass "$label: $err";
     }
 }
 
