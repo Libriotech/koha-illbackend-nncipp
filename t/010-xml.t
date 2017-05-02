@@ -6,6 +6,15 @@ use Data::Dumper;
 
 use lib '../../../';
 
+sub must_fail {
+    my ($code, $label) = @_;
+    if (eval { $code->(); 1; }) {
+        fail $label;
+    } else {
+        pass "$label: $@";
+    }
+}
+
 require_ok("Koha::Illbackends::NNCIPP::XML");
 
 my $x = Koha::Illbackends::NNCIPP::XML->new();
@@ -36,7 +45,7 @@ is($parsed->findvalue('//ns1:ToAgencyId//*'), 'NO-to', 'to agency');
 
 # ItemRequested
 
-my $item_requested = $x->ItemRequested(
+my %args = (
     from_agency => 'NO-from',
     to_agency => 'NO-to',
     userid => 'user001',
@@ -46,11 +55,20 @@ my $item_requested = $x->ItemRequested(
         Author => 'U.N. Owen',
     },
 );
+my $item_requested = $x->ItemRequested(%args);
 
 isa_ok($item_requested, 'XML::LibXML::Document');
 
 my $item_requested_txt = $item_requested->toString(1);
 like($item_requested_txt, qr/U\.N\. Owen/, "Author is present in the XML as text");
 is($item_requested->findvalue('//ns1:ItemIdentifierValue'), '1234567', 'barcode');
+
+for my $k (keys %args) {
+    my %missing = %args;
+    delete $missing{$k};
+    must_fail(sub {
+        $x->ItemRequested();
+    }, "missing arguments: '$k'");
+}
 
 done_testing();
