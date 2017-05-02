@@ -108,6 +108,62 @@ sub ItemRequested {
     );
 }
 
+sub RequestItem {
+    my ($self, %args) = @_;
+    my $required = sub {
+        my ($k) = @_;
+        exists $args{$k} or Carp::croak "argument {$k} is required";
+        $args{$k};
+    };
+    die "NIY";
+}
+
+sub ItemShipped {
+    my ($self, %args) = @_;
+    my $required = sub {
+        my ($k) = @_;
+        exists $args{$k} or Carp::croak "argument {$k} is required";
+        $args{$k};
+    };
+    return $self->build(
+        ItemShipped => [
+            InitiationHeader => [
+                FromAgencyId => [ AgencyId => $required->('from_agency') ], # OWNER
+                ToAgencyId => [ AgencyId => $required->('to_agency') ], # HOME
+            ],
+            RequestId => [
+                AgencyId => $required->('cardnumber'),
+                RequestIdentifierValue => $required->('request_id'),
+            ],
+            ItemId => [
+                ItemIdentifierType => 'Barcode',
+                ItemIdentifierValue => $required->('barcode'),
+            ],
+            UserId => [ UserIdentifierValue => $required->('userid') ],
+            DateShipped => iso8601($required->('date_shipped')),
+            ShippingInformation => [
+                PhysicalAddress => [
+                    StructuredAddress => [
+                        %{$required->('address')},
+                        #Street => $required->('street'),
+                        #Region => $required->('city'),
+                        #Country => $required->('country'),
+                        #PostalCode => $required->('zipcode'),
+                    ],
+                    #PhysicalAddressType => [], # TODO ??? why an empty tag?
+                ],
+            ],
+            ItemOptionalFields => [
+                BibliographicDescription => [
+                    %{$required->('bibliographic_description')}, # TODO language MUST be ISO-63902 (three letter code), BibliographicLevel must be set to Book|Journal|Other
+                ],
+            ],
+            Ext => [
+                NoticeContent => $required->('shipped_by'),
+            ],
+        ],
+    );
+}
 
 
 =head2 build
@@ -165,6 +221,14 @@ sub build {
     $appender->($root, \@data);
 
     return $doc;
+}
+
+sub iso8601 {
+    my ($in) = @_;
+    return $in if $in =~ m{^\d\d\d\d-\d\d-\d\d$}; # simple date
+    return $in if $in =~ m{^\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\d+00:00$}; # simple date + time GMT
+    return $in if $in =~ m{^\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\dZ$}; # simple date + time GMT
+    die "NIY: can't parse date: '$in'";
 }
 
 sub parse {
