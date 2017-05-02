@@ -56,13 +56,13 @@ sub new {
 }
 
 
-=head2 SendItemRequested
+=head2 ItemRequested
 
-Builds a SendItemRequested XML
+Builds a ItemRequested XML
 
 =cut
 
-sub  SendItemRequested {
+sub ItemRequested {
     my ($self, %args) = @_;
     my $required = sub {
         my ($k) = @_;

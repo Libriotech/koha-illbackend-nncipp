@@ -105,7 +105,7 @@ sub SendItemRequested {
     # Pick out the language code from 008, position 35-37
     my $lang_code = _get_langcode_from_bibliodata( $biblionumber );
 
-    my $xml = $self->{XML}->SendItemRequested(
+    my $xml = $self->{XML}->ItemRequested(
         to_agency => "NO-".$borrower->cardnumber,
         from_agency => "NO-".C4::Context->preference('ILLISIL'),
         userid => $userid,
