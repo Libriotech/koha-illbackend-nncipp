@@ -17,6 +17,8 @@ package Koha::Illbackends::NNCIPP::NNCIPP;
 # with Koha; if not, write to the Free Software Foundation, Inc.,
 # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 
+use Koha::Illbackends::NNCIPP::XML;
+
 use C4::Biblio;
 use C4::Items;
 use C4::Log;
