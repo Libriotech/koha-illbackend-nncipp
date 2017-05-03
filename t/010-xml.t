@@ -68,7 +68,28 @@ subtest ItemRequested => sub {
         delete $missing{$k};
         must_fail(sub {
             $x->ItemRequested(%missing);
-        }, "missing arguments: '$k'");
+        }, "missing arguments: '$k'", $k);
+    }
+};
+
+subtest RequestItem => sub {
+    my %args = (
+        from_agency => 'NO-from',
+        to_agency => 'NO-to',
+        userid => 'user001',
+        barcode => '1234567',
+        request_type => 'Physical',
+    );
+    my $xml = $x->RequestItem(%args);
+    isa_ok($xml, 'XML::LibXML::Document');
+    is($xml->findvalue('//ns1:ItemIdentifierValue'), '1234567', 'barcode');
+
+    for my $k (keys %args) {
+        my %missing = %args;
+        delete $missing{$k};
+        must_fail(sub {
+            $x->RequestItem(%missing);
+        }, "missing arguments: '$k'", $k);
     }
 };
 
