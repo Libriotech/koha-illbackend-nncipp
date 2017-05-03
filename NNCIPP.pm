@@ -55,7 +55,7 @@ our $VERSION = '0.01';
 sub new {
     my ( $class ) = @_;
     my $self  = {
-        XML -> Koha::Illbackends::NNCIPP::XML->new(),
+        XML => Koha::Illbackends::NNCIPP::XML->new(),
     };
     bless $self, $class;
     return $self;
