@@ -7,11 +7,14 @@ use Data::Dumper;
 use lib '../../../';
 
 sub must_fail {
-    my ($code, $label) = @_;
+    my ($code, $label, $re) = @_;
     if (eval { $code->(); 1; }) {
         fail $label;
     } else {
         my $err = $@; chomp($err);
+        if ($re) {
+            $err =~ m{$re} or fail "$label: error doesn't match /$re/: $err";
+        }
         pass "$label: $err";
     }
 }
@@ -96,7 +99,7 @@ subtest CancelRequestItem => sub {
         delete $missing{$k};
         must_fail(sub {
             $x->ItemShipped(%missing);
-        }, "missing arguments: '$k'");
+        }, "missing arguments: '$k'", $k);
     }
 };
 
@@ -133,7 +136,7 @@ subtest ItemShipped => sub {
         delete $missing{$k};
         must_fail(sub {
             $x->ItemShipped(%missing);
-        }, "missing arguments: '$k'");
+        }, "missing arguments: '$k'", $k);
     }
 
     must_fail(sub {
