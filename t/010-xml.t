@@ -101,14 +101,7 @@ subtest CancelRequestItem => sub {
         userid => 'user001',
         barcode => '1234567',
         cardnumber => 'NL-12345',
-        date_shipped => "2015-11-22",
         request_type => 'Physical',
-        address => {
-            street => 'Narrowgata',
-            city => 'Townia',
-            country => 'Norway',
-            zipcode => '0123',
-        },
         cancelled_by => 'Me',
     );
     my $xml = $x->CancelRequestItem(%args);
@@ -119,7 +112,7 @@ subtest CancelRequestItem => sub {
         my %missing = %args;
         delete $missing{$k};
         must_fail(sub {
-            $x->ItemShipped(%missing);
+            $x->CancelRequestItem(%missing);
         }, "missing arguments: '$k'", $k);
     }
 };
