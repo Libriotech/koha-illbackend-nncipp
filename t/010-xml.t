@@ -46,6 +46,7 @@ is($parsed->findvalue('//ns1:ToAgencyId//*'), 'NO-to', 'to agency');
 
 
 subtest ItemRequested => sub {
+    my $name = Test::More->builder()->{Name};
     my %args = (
         from_agency => 'NO-from',
         to_agency => 'NO-to',
@@ -56,7 +57,8 @@ subtest ItemRequested => sub {
             Author => 'U.N. Owen',
         },
     );
-    my $xml = $x->ItemRequested(%args);
+    my $xml = $x->$name(%args);
+    is(($xml->documentElement->childNodes())[0]->tagName, "ns1:$name", 'tag name');
     isa_ok($xml, 'XML::LibXML::Document');
 
     my $txt = $xml->toString(1);
@@ -67,12 +69,13 @@ subtest ItemRequested => sub {
         my %missing = %args;
         delete $missing{$k};
         must_fail(sub {
-            $x->ItemRequested(%missing);
+            $x->$name(%missing);
         }, "missing arguments: '$k'", $k);
     }
 };
 
 subtest RequestItem => sub {
+    my $name = Test::More->builder()->{Name};
     my %args = (
         from_agency => 'NO-from',
         to_agency => 'NO-to',
@@ -80,7 +83,8 @@ subtest RequestItem => sub {
         barcode => '1234567',
         request_type => 'Physical',
     );
-    my $xml = $x->RequestItem(%args);
+    my $xml = $x->$name(%args);
+    is(($xml->documentElement->childNodes())[0]->tagName, "ns1:$name", 'tag name');
     isa_ok($xml, 'XML::LibXML::Document');
     is($xml->findvalue('//ns1:ItemIdentifierValue'), '1234567', 'barcode');
 
@@ -88,12 +92,13 @@ subtest RequestItem => sub {
         my %missing = %args;
         delete $missing{$k};
         must_fail(sub {
-            $x->RequestItem(%missing);
+            $x->$name(%missing);
         }, "missing arguments: '$k'", $k);
     }
 };
 
 subtest CancelRequestItem => sub {
+    my $name = Test::More->builder()->{Name};
     my %args = (
         request_id => 'R#123',
         from_agency => 'NO-from',
@@ -104,7 +109,8 @@ subtest CancelRequestItem => sub {
         request_type => 'Physical',
         cancelled_by => 'Me',
     );
-    my $xml = $x->CancelRequestItem(%args);
+    my $xml = $x->$name(%args);
+    is(($xml->documentElement->childNodes())[0]->tagName, "ns1:$name", 'tag name');
     isa_ok($xml, 'XML::LibXML::Document');
     is($xml->findvalue('//ns1:ItemIdentifierValue'), '1234567', 'barcode');
 
@@ -112,13 +118,14 @@ subtest CancelRequestItem => sub {
         my %missing = %args;
         delete $missing{$k};
         must_fail(sub {
-            $x->CancelRequestItem(%missing);
+            $x->$name(%missing);
         }, "missing arguments: '$k'", $k);
     }
 };
 
 
 subtest ItemShipped => sub {
+    my $name = Test::More->builder()->{Name};
     my %args = (
         request_id => 'R#123',
         from_agency => 'NO-from',
@@ -138,7 +145,8 @@ subtest ItemShipped => sub {
         },
         shipped_by => 'Posten',
     );
-    my $xml = $x->ItemShipped(%args);
+    my $xml = $x->$name(%args);
+    is(($xml->documentElement->childNodes())[0]->tagName, "ns1:$name", 'tag name');
     isa_ok($xml, 'XML::LibXML::Document');
 
     my $txt = $xml->toString(1);
@@ -149,13 +157,13 @@ subtest ItemShipped => sub {
         my %missing = %args;
         delete $missing{$k};
         must_fail(sub {
-            $x->ItemShipped(%missing);
+            $x->$name(%missing);
         }, "missing arguments: '$k'", $k);
     }
 
     must_fail(sub {
         local $args{date_shipped} = 'Jun 3rd, 2003';
-        $x->ItemShipped(%args);
+        $x->$name(%args);
     }, "not iso date");
 };
 
