@@ -132,7 +132,7 @@ sub RequestItem {
                 ItemIdentifierType => 'Barcode',
                 ItemIdentifierValue => $required->('barcode'),
             ],
-            RequestType => [ # The RequestType must be one of the following: -->
+            RequestType => # The RequestType must be one of the following: -->
                              # Physical, a loan (of a physical item, create a reservation if not available) -->
                              # Non-Returnable, a copy of a physical item - that is not required to return -->
                              # PhysicalNoReservation, a loan (of a physical item), do NOT create a reservation if not available -->
@@ -141,11 +141,9 @@ sub RequestItem {
                              # Depot, a border case; some librarys get a box of (foreign language) books from the national library -->
                              # If your library dont recive 'Depot'-books; just respond with a \"Unknown Value From Known Scheme\"-ProblemType -->
                 $required->('request_type'),
-            ],
-            RequestScopeType => [ # RequestScopeType is mandatory and must be \"Title\", signaling that the request is on title-level -->
-                                  # (and not Item-level - even though the request was on a Id that uniquely identify the requested Item) -->
+            RequestScopeType => # RequestScopeType is mandatory and must be \"Title\", signaling that the request is on title-level -->
+                                # (and not Item-level - even though the request was on a Id that uniquely identify the requested Item) -->
                 "Title",
-            ],
         ]
     );
 }
