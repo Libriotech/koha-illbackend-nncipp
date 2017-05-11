@@ -25,6 +25,7 @@ foreach my $req ( $resultset->next ) {
     my $patron = GetMember( borrowernumber => $req->borrowernumber );
     my $resp = $nncipp->SendRequestItem({
         'illrequest_id'       => $req->illrequest_id,
+        'orderid'             => $req->orderid,
         'cardnumber'          => $patron->{'cardnumber'},
         'borrowernumber'      => $req->illrequestattributes->find({ type => 'ordered_from_borrowernumber' })->value,
         'ordered_from'        => $req->illrequestattributes->find({ type => 'ordered_from' })->value,

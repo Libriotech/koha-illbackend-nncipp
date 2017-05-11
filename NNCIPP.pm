@@ -24,6 +24,7 @@ use C4::Items;
 use C4::Log;
 use C4::Members::Attributes qw ( GetBorrowerAttributeValue );
 
+use Data::Dumper; # FIXME Debug
 use Carp;
 use HTTP::Tiny;
 use XML::Simple;
@@ -154,6 +155,8 @@ sub SendRequestItem {
 #        $itemidentifiervalue .= $args->{'rfid'};
 #    }
 
+    my ( $AgencyId, $RequestIdentifierValue ) = split /:/, $args->{'orderid'};
+
     my $msg = "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>
     <ns1:NCIPMessage xmlns:ns1=\"http://www.niso.org/2008/ncip\" ns1:version=\"http://www.niso.org/schemas/ncip/v2_02/ncip_v2_02.xsd\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xsi:schemaLocation=\"http://www.niso.org/2008/ncip http://www.niso.org/schemas/ncip/v2_02/ncip_v2_02.xsd\">
         <!-- Usage in NNCIPP 1.0 is in use-case 2: A user request a spesific uniqe item, from a external library.  -->
@@ -196,9 +199,9 @@ sub SendRequestItem {
     $msg .= "<!-- The RequestId must be created by the initializing AgencyId and it has to be globaly uniqe -->
             <ns1:RequestId>
                 <!-- The initializing AgencyId must be part of the RequestId -->
-                <ns1:AgencyId>NO-" . C4::Context->preference('ILLISIL') . "</ns1:AgencyId>
+                <ns1:AgencyId>NO-" . $AgencyId . "</ns1:AgencyId>
                 <!-- The RequestIdentifierValue must be part of the RequestId-->
-                <ns1:RequestIdentifierValue>" . $args->{'illrequest_id'} . "</ns1:RequestIdentifierValue>
+                <ns1:RequestIdentifierValue>" . $RequestIdentifierValue . "</ns1:RequestIdentifierValue>
             </ns1:RequestId>
             <!-- The RequestType must be one of the following: -->
             <!-- Physical, a loan (of a physical item, create a reservation if not available) -->
@@ -220,6 +223,46 @@ sub SendRequestItem {
     </ns1:NCIPMessage>";
 
     return _send_message( 'RequestItem', $msg, GetBorrowerAttributeValue( $args->{'borrowernumber'}, 'nncip_uri' ) );
+
+}
+
+sub SendItemShipped {
+
+    my ( $self, $params ) = @_;
+
+    my $req = $params->{request};
+
+    my $xml = $self->{XML}->ItemShipped(
+        from_agency => C4::Context->preference('ILLISIL'), # Us
+        to_agency => $req->borrowernumber, # The library that wants to borrow the item
+        requestidentifiervalue => $req->illrequestattributes->find({ type => 'RequestIdentifierValue' })->value, # Our illrequest_id
+        itemidentifiertype => $req->illrequestattributes->find({ type => 'ItemIdentifierType' })->value,
+        itemidentifiervalue => $req->illrequestattributes->find({ type => 'ItemIdentifierValue' })->value,
+        userid => $req->illrequestattributes->find({ type => 'UserIdentifierValue' })->value,
+        date_shipped => '2017-05-15', # FIXME Use date and time now
+        address => 'a', # FIXME, obviously
+        city => 'b',
+        zipcode => 'c',
+        country => 'd',
+        # PhysicalAddressType => [], # TODO ??? why an empty tag?
+        # bibliographic_description # FIXME "If an alternative Item is shipped to fulfill a loan"
+        shipped_by => 'ShippedBy.Lender',
+    );
+
+    my $nncip_uri = GetBorrowerAttributeValue( $req->borrowernumber, 'nncip_uri' );
+    my $response = _send_message( 'ItemRequested', $xml->toString(1), $nncip_uri );
+
+    # Check the response, change the status
+    if ( $response->{'success'} == 1 && $response->{'problem'} == 0 ) {
+        warn "OK";
+        $req->status( 'O_ITEMSHIPPED' )->store;
+    } else {
+        # TODO
+        warn "NOT OK";
+        warn Dumper $response;
+    }
+
+    return $response;
 
 }
 

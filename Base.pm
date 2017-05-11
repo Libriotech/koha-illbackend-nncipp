@@ -20,10 +20,12 @@ package Koha::Illbackends::NNCIPP::Base;
 use Modern::Perl;
 use DateTime;
 
+use Data::Dumper; # FIXME Debug
 use XML::LibXML;
 use LWP::UserAgent;
 use HTTP::Request;
 
+use Koha::Illbackends::NNCIPP::NNCIPP;
 use Koha::Illrequestattribute;
 use Koha::Patrons;
 
@@ -238,17 +240,68 @@ sub metadata {
 
 sub status_graph {
     return {
-        ORDERED => {
+        # Status where we are Home Library
+        H_ITEMREQUESTED => {
             prev_actions => [ ],                           # Actions containing buttons
                                                            # leading to this status
-            id             => 'ORDERED',                   # ID of this status
-            name           => 'Ordered',                   # UI name of this status
-            ui_method_name => 'Ordered',                   # UI name of method leading
+            id             => 'H_ITEMREQUESTED',                   # ID of this status
+            name           => 'Item Requested',                   # UI name of this status
+            ui_method_name => 'Item Requested',                   # UI name of method leading
                                                            # to this status
             method         => 'create',                    # method to this status
-            next_actions   => [ 'REQ', 'GENREQ', 'KILL' ], # buttons to add to all
+            next_actions   => [ 'H_REQUESTITEM', 'KILL' ], # buttons to add to all
                                                            # requests with this status
             ui_method_icon => 'fa-plus',                   # UI Style class
+        },
+        H_REQUESTITEM => {
+            prev_actions => [ 'H_ITEMREQUESTED' ],                           # Actions containing buttons
+                                                           # leading to this status
+            id             => 'H_REQUESTITEM',                   # ID of this status
+            name           => 'Request Item',                   # UI name of this status
+            ui_method_name => 'Request Item',                   # UI name of method leading
+                                                           # to this status
+            method         => 'requestitem',                    # method to this status
+            next_actions   => [ 'H_REQUESTITEM' ], # buttons to add to all
+                                                           # requests with this status
+            ui_method_icon => 'fa-send-o',                   # UI Style class
+        },
+
+        # Statuses where we are Owner Library
+        O_ITEMREQUESTED => {
+            prev_actions => [ ],                           # Actions containing buttons
+                                                           # leading to this status
+            id             => 'O_ITEMREQUESTED',                   # ID of this status
+            name           => 'Item Requested',                   # UI name of this status
+            ui_method_name => 'Item Requested',                   # UI name of method leading
+                                                           # to this status
+            method         => 'create',                    # method to this status
+            next_actions   => [ 'O_REQUESTITEM', 'KILL' ], # buttons to add to all
+                                                           # requests with this status
+            ui_method_icon => 'fa-plus',                   # UI Style class
+        },
+        O_REQUESTITEM => {
+            prev_actions => [ 'O_ITEMREQUESTED' ],                           # Actions containing buttons
+                                                           # leading to this status
+            id             => 'O_REQUESTITEM',                   # ID of this status
+            name           => 'Request Item',                   # UI name of this status
+            ui_method_name => 'Request Item',                   # UI name of method leading
+                                                           # to this status
+            method         => 'requestitem',                    # method to this status
+            next_actions   => [ 'KILL', 'O_ITEMSHIPPED' ], # buttons to add to all
+                                                           # requests with this status
+            ui_method_icon => 'fa-send-o',                   # UI Style class
+        },
+        O_ITEMSHIPPED => {
+            prev_actions => [ 'O_ITEMREQUESTED' ],                           # Actions containing buttons
+                                                           # leading to this status
+            id             => 'O_ITEMSHIPPED',                   # ID of this status
+            name           => 'Item shipped',                   # UI name of this status
+            ui_method_name => 'Ship item',                   # UI name of method leading
+                                                           # to this status
+            method         => 'itemshipped',                    # method to this status
+            next_actions   => [ 'KILL' ], # buttons to add to all
+                                                           # requests with this status
+            ui_method_icon => 'fa-send-o',                   # UI Style class
         },
     };
 }
@@ -281,6 +334,7 @@ This is an example of a multi-stage method.
 #};
 
 sub create {
+
     # -> initial placement of the request for an ILL order
     my ( $self, $params ) = @_;
     my $stage = $params->{other}->{stage};
@@ -316,6 +370,24 @@ sub create {
         })->store;
     }
 
+    # There are two times where we create and save to the db a new request:
+    # 1. We are the Home Library and received an ItemRequested
+    #    The status will be H_ITEMREQUESTED
+    #    We should create an orderid with our own ISIL and our own illrequest_id
+    # 2. We are the Owner Library and received a RequestItem
+    #    The status will be O_REQUESTITEM
+    #    We should NOT create a new orderid, but use AgencyId and RequestIdentifierValue
+    # Update the saved request with the orderid that we thereby create 
+    my $orderid;
+    if ( $request->status eq 'H_ITEMREQUESTED' ) {
+        $orderid = C4::Context->preference('ILLISIL') . ':' . $request->illrequest_id;
+    } elsif ( $request->status eq 'O_REQUESTITEM' )  {
+        my $agencyid = $request->illrequestattributes->find({ type => 'AgencyId' })->value;
+        $agencyid =~ s/^no-//i;
+        $orderid = $agencyid . ':' . $request->illrequestattributes->find({ type => 'RequestIdentifierValue' })->value;
+    }
+    $request->orderid( $orderid )->store;
+
     # -> create response.
     return {
         error   => 0,
@@ -325,6 +397,67 @@ sub create {
         stage   => 'commit',
         next    => 'illview',
         # value   => $request_details,
+    };
+
+}
+
+=head2 itemshipped
+
+Send an ItemShipped message to another library as the Owner Library
+
+See also SendItemShippedAsHome.
+
+=cut
+
+sub itemshipped {
+
+    # -> initial placement of the request for an ILL order
+    my ( $self, $params ) = @_;
+
+    warn Dumper $params->{request}->illrequest_id;
+
+    my $nncipp = Koha::Illbackends::NNCIPP::NNCIPP->new();
+    my $resp = $nncipp->SendItemShipped({
+        'request' => $params->{request},
+    });
+
+#    my $stage = $params->{other}->{stage};
+
+#    my $request = $args->{'request'};
+#    my $borrower = $request->status->getProperty('borrower');
+
+#    my $dt = DateTime->now;
+#    $dt->set_time_zone( 'Europe/Oslo' );
+
+#    my $tmplbase = 'ill/nncipp/ItemShipped.xml';
+#    my $language = 'en'; # _get_template_language($query->cookie('KohaOpacLanguage'));
+#    my $path     = C4::Context->config('intrahtdocs'). "/prog/". $language;
+#    my $filename = "$path/modules/" . $tmplbase;
+#    my $template = C4::Templates->new( 'intranet', $filename, $tmplbase );
+
+#    my ( $remote_id_agency, $remote_id_id ) = split /:/, $request->status->getProperty('remote_id');
+
+#    $template->param(
+#        'FromAgency'        => C4::Context->preference('ILLISIL'),
+#        'RequestIdentifier' => $remote_id_id,
+#        'ItemIdentifier'    => $args->{'barcode'},
+#        'DateShipped'       => $dt->iso8601(),
+#        'borrower'          => $borrower,
+#        'remote_user'       => $request->status->getProperty('remote_user'),
+#    );
+#    my $msg = $template->output();
+
+#    my $nncip_uri = GetBorrowerAttributeValue( $borrower->borrowernumber, 'nncip_uri' );
+#    return _send_message( 'ItemShipped', $msg, $nncip_uri );
+
+    return {
+        error    => 0,
+        status   => '',
+        message  => '',
+        method   => 'itemshipped',
+        stage    => 'commit',
+        next     => 'illview',
+        value    => '',
     };
 
 }
