@@ -266,6 +266,77 @@ sub SendItemShipped {
 
 }
 
+sub SendItemShipped {
+
+    my ( $self, $params ) = @_;
+
+    my $req = $params->{request};
+
+    my $xml = $self->{XML}->ItemShipped(
+        from_agency => C4::Context->preference('ILLISIL'), # Us
+        to_agency => $req->borrowernumber, # The library that wants to borrow the item
+        requestidentifiervalue => $req->illrequestattributes->find({ type => 'RequestIdentifierValue' })->value, # Our illrequest_id
+        itemidentifiertype => $req->illrequestattributes->find({ type => 'ItemIdentifierType' })->value,
+        itemidentifiervalue => $req->illrequestattributes->find({ type => 'ItemIdentifierValue' })->value,
+        userid => $req->illrequestattributes->find({ type => 'UserIdentifierValue' })->value,
+        date_shipped => '2017-05-15', # FIXME Use date and time now
+        address => 'a', # FIXME, obviously
+        city => 'b',
+        zipcode => 'c',
+        country => 'd',
+        # PhysicalAddressType => [], # TODO ??? why an empty tag?
+        # bibliographic_description # FIXME "If an alternative Item is shipped to fulfill a loan"
+        shipped_by => 'ShippedBy.Lender',
+    );
+
+    my $nncip_uri = GetBorrowerAttributeValue( $req->borrowernumber, 'nncip_uri' );
+    my $response = _send_message( 'ItemShipped', $xml->toString(1), $nncip_uri );
+
+    # Check the response, change the status
+    if ( $response->{'success'} == 1 && $response->{'problem'} == 0 ) {
+        warn "OK";
+        $req->status( 'O_ITEMSHIPPED' )->store;
+    } else {
+        # TODO
+        warn "NOT OK";
+        warn Dumper $response;
+    }
+
+    return $response;
+
+}sub SendItemReceived {
+
+    my ( $self, $params ) = @_;
+
+    my $req = $params->{request};
+
+    my $xml = $self->{XML}->ItemReceived(
+        from_agency => C4::Context->preference('ILLISIL'), # Us
+        to_agency => $req->borrowernumber, # The library that wants to borrow the item
+        requestidentifiervalue => $req->illrequestattributes->find({ type => 'RequestIdentifierValue' })->value,
+        itemidentifiertype => $req->illrequestattributes->find({ type => 'ItemIdentifierType' })->value,
+        itemidentifiervalue => $req->illrequestattributes->find({ type => 'ItemIdentifierValue' })->value,
+        date_received => '2017-05-15', # FIXME Use date and time now
+        received_by => 'ReceivedBy.Borrower',
+    );
+
+    my $nncip_uri = GetBorrowerAttributeValue( $req->borrowernumber, 'nncip_uri' );
+    my $response = _send_message( 'ItemReceived', $xml->toString(1), $nncip_uri );
+
+    # Check the response, change the status
+    if ( $response->{'success'} == 1 && $response->{'problem'} == 0 ) {
+        warn "OK";
+        $req->status( 'H_ITEMRECEIVED' )->store;
+    } else {
+        # TODO
+        warn "NOT OK";
+        warn Dumper $response;
+    }
+
+    return $response;
+
+}
+
 =head1 INTERNAL SUBROUTINES
 
 =head2 _send_message

@@ -237,6 +237,42 @@ sub ItemShipped {
     );
 }
 
+=head2 ItemReceived
+
+Builds an ItemReceived XML message.
+
+Sample message: https://github.com/Libriotech/kohawork/blob/nncipp-on-ptfseill/koha-tmpl/intranet-tmpl/prog/en/modules/ill/nncipp/ItemReceived.xml
+
+=cut
+
+sub ItemReceived {
+    my ($self, %args) = @_;
+    my $required = sub {
+        my ($k) = @_;
+        exists $args{$k} or Carp::croak "argument {$k} is required";
+        $args{$k};
+    };
+    return $self->build(
+        ItemReceived => [
+            InitiationHeader => [
+                FromAgencyId => [ AgencyId => $required->('from_agency') ], # OWNER
+                ToAgencyId => [ AgencyId => $required->('to_agency') ], # HOME
+            ],
+            RequestId => [
+                AgencyId => $required->('from_agency'),
+                RequestIdentifierValue => $required->('requestidentifiervalue'),
+            ],
+            ItemId => [
+                ItemIdentifierType => $required->('itemidentifiertype'),
+                ItemIdentifierValue => $required->('itemidentifiervalue'),
+            ],
+            DateReceived => iso8601($required->('date_received')),
+            Ext => [
+                NoticeContent => $required->('received_by'),
+            ],
+        ],
+    );
+}
 
 =head2 build
 

@@ -265,6 +265,30 @@ sub status_graph {
                                                            # requests with this status
             ui_method_icon => 'fa-send-o',                   # UI Style class
         },
+        H_ITEMSHIPPED => {
+            prev_actions => [ 'O_REQUESTITEM' ],                           # Actions containing buttons
+                                                           # leading to this status
+            id             => 'H_ITEMSHIPPED',                   # ID of this status
+            name           => 'Item shipped',                   # UI name of this status
+            ui_method_name => 'Ship item',                   # UI name of method leading
+                                                           # to this status
+            method         => 'itemshipped',                    # method to this status
+            next_actions   => [ 'KILL', 'H_ITEMRECEIVED' ], # buttons to add to all
+                                                           # requests with this status
+            ui_method_icon => 'fa-send-o',                   # UI Style class
+        },
+        H_ITEMRECEIVED => {
+            prev_actions => [ 'H_ITEMSHIPPED' ],                           # Actions containing buttons
+                                                           # leading to this status
+            id             => 'H_ITEMRECEIVED',                   # ID of this status
+            name           => 'Item received',                   # UI name of this status
+            ui_method_name => 'Receive item',                   # UI name of method leading
+                                                           # to this status
+            method         => 'itemreceived',                    # method to this status
+            next_actions   => [ 'KILL' ], # buttons to add to all
+                                                           # requests with this status
+            ui_method_icon => 'fa-inbox',                   # UI Style class
+        },
 
         # Statuses where we are Owner Library
         O_ITEMREQUESTED => {
@@ -421,40 +445,41 @@ sub itemshipped {
         'request' => $params->{request},
     });
 
-#    my $stage = $params->{other}->{stage};
-
-#    my $request = $args->{'request'};
-#    my $borrower = $request->status->getProperty('borrower');
-
-#    my $dt = DateTime->now;
-#    $dt->set_time_zone( 'Europe/Oslo' );
-
-#    my $tmplbase = 'ill/nncipp/ItemShipped.xml';
-#    my $language = 'en'; # _get_template_language($query->cookie('KohaOpacLanguage'));
-#    my $path     = C4::Context->config('intrahtdocs'). "/prog/". $language;
-#    my $filename = "$path/modules/" . $tmplbase;
-#    my $template = C4::Templates->new( 'intranet', $filename, $tmplbase );
-
-#    my ( $remote_id_agency, $remote_id_id ) = split /:/, $request->status->getProperty('remote_id');
-
-#    $template->param(
-#        'FromAgency'        => C4::Context->preference('ILLISIL'),
-#        'RequestIdentifier' => $remote_id_id,
-#        'ItemIdentifier'    => $args->{'barcode'},
-#        'DateShipped'       => $dt->iso8601(),
-#        'borrower'          => $borrower,
-#        'remote_user'       => $request->status->getProperty('remote_user'),
-#    );
-#    my $msg = $template->output();
-
-#    my $nncip_uri = GetBorrowerAttributeValue( $borrower->borrowernumber, 'nncip_uri' );
-#    return _send_message( 'ItemShipped', $msg, $nncip_uri );
-
     return {
         error    => 0,
         status   => '',
         message  => '',
         method   => 'itemshipped',
+        stage    => 'commit',
+        next     => 'illview',
+        value    => '',
+    };
+
+}
+
+=head2 itemreceived
+
+Send ItemReceived.
+
+=cut
+
+sub itemreceived {
+
+    # -> initial placement of the request for an ILL order
+    my ( $self, $params ) = @_;
+
+    warn Dumper $params->{request}->illrequest_id;
+
+    my $nncipp = Koha::Illbackends::NNCIPP::NNCIPP->new();
+    my $resp = $nncipp->SendItemReceived({
+        'request' => $params->{request},
+    });
+
+    return {
+        error    => 0,
+        status   => '',
+        message  => '',
+        method   => 'itemreceived',
         stage    => 'commit',
         next     => 'illview',
         value    => '',
