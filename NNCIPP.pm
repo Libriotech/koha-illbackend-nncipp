@@ -142,18 +142,20 @@ sub SendRequestItem {
     # Construct ItemIdentifierType and ItemIdentifierValue
     my $ItemIdentifierType  = $types{ lc $args->{'ItemIdentifierType'} };
     my $ItemIdentifierValue = $args->{'ItemIdentifierValue'};
-#    if ( $args->{'barcode'} ne '' ) {
-#        $itemidentifiertype  .= 'Barcode';
-#        $itemidentifiervalue .= $args->{'barcode'};
-#    }
-#    if ( $args->{'barcode'} ne '' && $args->{'rfid'} ne '' ) {
-#        $itemidentifiertype  .= ';';
-#        $itemidentifiervalue .= ';';
-#    }
-#    if ( $args->{'rfid'} ne '' ) {
-#        $itemidentifiertype  .= 'RFID';
-#        $itemidentifiervalue .= $args->{'rfid'};
-#    }
+
+    my $xml = $self->{XML}->new(
+        from_agency => "NO-".C4::Context->preference('ILLISIL'),
+        to_agency => "NO-".$args->{ordered_from},
+        userid => $args->{cardnumber},
+        item_type => $ItemIdentifierType,
+        item_id => $ItemIdentifierValue,
+        request_type => $args->{RequestType},
+        illrequest_id => $args->{illrequest_id},
+    );
+
+    return _send_message( 'RequestItem', $xml->toString(), GetBorrowerAttributeValue( $args->{'borrowernumber'}, 'nncip_uri' ) );
+
+    # TODO magnuse, check if the above is ok (it should be, but not easy for me to test) and remove the following when fine
 
     my ( $AgencyId, $RequestIdentifierValue ) = split /:/, $args->{'orderid'};
 

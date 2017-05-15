@@ -80,8 +80,10 @@ subtest RequestItem => sub {
         from_agency => 'NO-from',
         to_agency => 'NO-to',
         userid => 'user001',
-        barcode => '1234567',
+        item_type => 'Barcode',
+        item_id => '1234567',
         request_type => 'Physical',
+        illrequest_id => 2345,
     );
     my $xml = $x->$name(%args);
     is(($xml->documentElement->childNodes())[0]->tagName, "ns1:$name", 'tag name');

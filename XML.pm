@@ -70,6 +70,7 @@ sub ItemRequested {
         $args{$k};
     };
 
+
     return $self->build(
         ItemRequested => [
             InitiationHeader => [ # The InitiationHeader, stating from- and to-agency, is mandatory.
@@ -114,7 +115,26 @@ sub RequestItem {
         $args{$k};
     };
 
-    # NOTE: taken from github.com/Libriotech/nciptester examples and changed with some educated guessing
+    my @itemId;
+    if ($required->('item_type') =~ m{^(Barcode)$} ) {
+        # The ItemId must uniquely identify the requested Item in the scope of the FromAgencyId. -->
+        # The ToAgency may then mirror back this ItemId in a RequestItem-call to order it.-->
+        # Note: NNCIPP do not support use of BibliographicId insted of ItemId, in this case. -->
+        @itemId = (ItemId => [
+            ItemIdentifierType => $required->('item_type'),
+            ItemIdentifierValue => $required->('item_id'),
+        ]);
+    } elsif ($required->('item_type') =~ m{^(ISBN|ISSN|EAN)$} ) {
+        # All Items must have a scannable Id either a RFID or a Barcode or Both. -->
+        # In the case of both, start with the Barcode, use colon and no spaces as delimitor.-->
+        @itemId = (BibliographicId => [
+            ItemIdentifierType => $required->('item_type'),
+            ItemIdentifierValue => $required->('item_id'),
+        ]);
+    } else {
+        die "invalid item_type: '$args{item_type}'";
+    }
+
     return $self->build(
         RequestItem => [
             InitiationHeader => [
@@ -124,24 +144,25 @@ sub RequestItem {
             UserId => [ # The UserId must be a NLR-Id (National Patron Register) -->
                 UserIdentifierValue => $required->('userid'),
             ],
-            ItemId => [ # The ItemId must uniquely identify the requested Item in the scope of the FromAgencyId. -->
-                        # The ToAgency may then mirror back this ItemId in a RequestItem-call to order it.-->
-                        # Note: NNCIPP do not support use of BibliographicId insted of ItemId, in this case. -->
-                ItemIdentifierType => 'Barcode',
-                ItemIdentifierValue => $required->('barcode'),
+            @itemId,
+            RequestId => [
+                # The initializing AgencyId must be part of the RequestId -->
+                AgencyId => $required->('from_agency'),
+                # The RequestIdentifierValue must be part of the RequestId-->
+                RequestIdentifierValue => $required->('illrequest_id'),
             ],
-            RequestType => # The RequestType must be one of the following: -->
-                             # Physical, a loan (of a physical item, create a reservation if not available) -->
-                             # Non-Returnable, a copy of a physical item - that is not required to return -->
-                             # PhysicalNoReservation, a loan (of a physical item), do NOT create a reservation if not available -->
-                             # LII, a patron initialized physical loan request, threat as a physical loan request -->
-                             # LIINoReservation, a patron initialized physical loan request, do NOT create a reservation if not available -->
-                             # Depot, a border case; some librarys get a box of (foreign language) books from the national library -->
-                             # If your library dont recive 'Depot'-books; just respond with a \"Unknown Value From Known Scheme\"-ProblemType -->
-                $required->('request_type'),
-            RequestScopeType => # RequestScopeType is mandatory and must be \"Title\", signaling that the request is on title-level -->
-                                # (and not Item-level - even though the request was on a Id that uniquely identify the requested Item) -->
-                "Title",
+            RequestType => $required->('request_type'),
+                # The RequestType must be one of the following: -->
+                # Physical, a loan (of a physical item, create a reservation if not available) -->
+                # Non-Returnable, a copy of a physical item - that is not required to return -->
+                # PhysicalNoReservation, a loan (of a physical item), do NOT create a reservation if not available -->
+                # LII, a patron initialized physical loan request, threat as a physical loan request -->
+                # LIINoReservation, a patron initialized physical loan request, do NOT create a reservation if not available -->
+                # Depot, a border case; some librarys get a box of (foreign language) books from the national library -->
+                # If your library dont recive 'Depot'-books; just respond with a \"Unknown Value From Known Scheme\"-ProblemType -->
+            RequestScopeType => "Title",
+                # RequestScopeType is mandatory and must be \"Title\", signaling that the request is on title-level -->
+                # (and not Item-level - even though the request was on a Id that uniquely identify the requested Item) -->
         ]
     );
 }
@@ -171,16 +192,15 @@ sub CancelRequestItem {
                 ItemIdentifierValue => $required->('barcode'),
             ],
             UserId => [ UserIdentifierValue => $required->('userid') ],
-            RequestType => [ # The RequestType must be one of the following: -->
-                             # Physical, a loan (of a physical item, create a reservation if not available) -->
-                             # Non-Returnable, a copy of a physical item - that is not required to return -->
-                             # PhysicalNoReservation, a loan (of a physical item), do NOT create a reservation if not available -->
-                             # LII, a patron initialized physical loan request, threat as a physical loan request -->
-                             # LIINoReservation, a patron initialized physical loan request, do NOT create a reservation if not available -->
-                             # Depot, a border case; some librarys get a box of (foreign language) books from the national library -->
-                             # If your library dont recive 'Depot'-books; just respond with a \"Unknown Value From Known Scheme\"-ProblemType -->
-                $required->('request_type'),
-            ],
+            RequestType => $required->('request_type'),
+                # The RequestType must be one of the following: -->
+                # Physical, a loan (of a physical item, create a reservation if not available) -->
+                # Non-Returnable, a copy of a physical item - that is not required to return -->
+                # PhysicalNoReservation, a loan (of a physical item), do NOT create a reservation if not available -->
+                # LII, a patron initialized physical loan request, threat as a physical loan request -->
+                # LIINoReservation, a patron initialized physical loan request, do NOT create a reservation if not available -->
+                # Depot, a border case; some librarys get a box of (foreign language) books from the national library -->
+                # If your library dont recive 'Depot'-books; just respond with a \"Unknown Value From Known Scheme\"-ProblemType -->
             Ext => [
                 NoticeContent => $required->('cancelled_by'),
             ],
