@@ -150,7 +150,7 @@ sub SendRequestItem {
         item_type => $ItemIdentifierType,
         item_id => $ItemIdentifierValue,
         request_type => $args->{RequestType},
-        illrequest_id => $args->{illrequest_id},
+        request_id => $args->{illrequest_id},
     );
 
     return _send_message( 'RequestItem', $xml->toString(), GetBorrowerAttributeValue( $args->{'borrowernumber'}, 'nncip_uri' ) );
@@ -237,15 +237,17 @@ sub SendItemShipped {
     my $xml = $self->{XML}->ItemShipped(
         from_agency => C4::Context->preference('ILLISIL'), # Us
         to_agency => $req->borrowernumber, # The library that wants to borrow the item
-        requestidentifiervalue => $req->illrequestattributes->find({ type => 'RequestIdentifierValue' })->value, # Our illrequest_id
+        request_id => $req->illrequestattributes->find({ type => 'RequestIdentifierValue' })->value, # Our illrequest_id
         itemidentifiertype => $req->illrequestattributes->find({ type => 'ItemIdentifierType' })->value,
         itemidentifiervalue => $req->illrequestattributes->find({ type => 'ItemIdentifierValue' })->value,
         userid => $req->illrequestattributes->find({ type => 'UserIdentifierValue' })->value,
         date_shipped => '2017-05-15', # FIXME Use date and time now
-        address => 'a', # FIXME, obviously
-        city => 'b',
-        zipcode => 'c',
-        country => 'd',
+        address => { # FIXME
+            street => 'Narrowgata',
+            city => 'Townia',
+            country => 'Norway',
+            zipcode => '0123',
+        },
         # PhysicalAddressType => [], # TODO ??? why an empty tag?
         # bibliographic_description # FIXME "If an alternative Item is shipped to fulfill a loan"
         shipped_by => 'ShippedBy.Lender',
@@ -277,15 +279,18 @@ sub SendItemShipped {
     my $xml = $self->{XML}->ItemShipped(
         from_agency => C4::Context->preference('ILLISIL'), # Us
         to_agency => $req->borrowernumber, # The library that wants to borrow the item
-        requestidentifiervalue => $req->illrequestattributes->find({ type => 'RequestIdentifierValue' })->value, # Our illrequest_id
+        request_id => $req->illrequestattributes->find({ type => 'RequestIdentifierValue' })->value, # Our illrequest_id
         itemidentifiertype => $req->illrequestattributes->find({ type => 'ItemIdentifierType' })->value,
         itemidentifiervalue => $req->illrequestattributes->find({ type => 'ItemIdentifierValue' })->value,
         userid => $req->illrequestattributes->find({ type => 'UserIdentifierValue' })->value,
         date_shipped => '2017-05-15', # FIXME Use date and time now
-        address => 'a', # FIXME, obviously
-        city => 'b',
-        zipcode => 'c',
-        country => 'd',
+
+        address => { # FIXME
+            street => 'Narrowgata',
+            city => 'Townia',
+            country => 'Norway',
+            zipcode => '0123',
+        },
         # PhysicalAddressType => [], # TODO ??? why an empty tag?
         # bibliographic_description # FIXME "If an alternative Item is shipped to fulfill a loan"
         shipped_by => 'ShippedBy.Lender',
@@ -315,7 +320,7 @@ sub SendItemShipped {
     my $xml = $self->{XML}->ItemReceived(
         from_agency => C4::Context->preference('ILLISIL'), # Us
         to_agency => $req->borrowernumber, # The library that wants to borrow the item
-        requestidentifiervalue => $req->illrequestattributes->find({ type => 'RequestIdentifierValue' })->value,
+        request_id => $req->illrequestattributes->find({ type => 'RequestIdentifierValue' })->value,
         itemidentifiertype => $req->illrequestattributes->find({ type => 'ItemIdentifierType' })->value,
         itemidentifiervalue => $req->illrequestattributes->find({ type => 'ItemIdentifierValue' })->value,
         date_received => '2017-05-15', # FIXME Use date and time now

@@ -83,7 +83,7 @@ subtest RequestItem => sub {
         item_type => 'Barcode',
         item_id => '1234567',
         request_type => 'Physical',
-        illrequest_id => 2345,
+        request_id => 2345,
     );
     my $xml = $x->$name(%args);
     is(($xml->documentElement->childNodes())[0]->tagName, "ns1:$name", 'tag name');
@@ -133,12 +133,8 @@ subtest ItemShipped => sub {
         from_agency => 'NO-from',
         to_agency => 'NO-to',
         userid => 'user001',
-        barcode => '1234567',
-        cardnumber => 'NL-12345',
+        #cardnumber => 'NL-12345',
         date_shipped => "2015-11-22",
-        bibliographic_description => {
-            Author => 'U.N. Owen',
-        },
         address => {
             street => 'Narrowgata',
             city => 'Townia',
@@ -146,13 +142,15 @@ subtest ItemShipped => sub {
             zipcode => '0123',
         },
         shipped_by => 'Posten',
+        request_id => 1234,
+        itemidentifiertype => 'Barcode',
+        itemidentifiervalue => 1234567,
     );
     my $xml = $x->$name(%args);
     is(($xml->documentElement->childNodes())[0]->tagName, "ns1:$name", 'tag name');
     isa_ok($xml, 'XML::LibXML::Document');
 
     my $txt = $xml->toString(1);
-    like($txt, qr/U\.N\. Owen/, "author is present in the xml as text");
     is($xml->findvalue('//ns1:ItemIdentifierValue'), '1234567', 'barcode');
 
     for my $k (keys %args) {

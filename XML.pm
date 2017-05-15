@@ -149,7 +149,7 @@ sub RequestItem {
                 # The initializing AgencyId must be part of the RequestId -->
                 AgencyId => $required->('from_agency'),
                 # The RequestIdentifierValue must be part of the RequestId-->
-                RequestIdentifierValue => $required->('illrequest_id'),
+                RequestIdentifierValue => $required->('request_id'),
             ],
             RequestType => $required->('request_type'),
                 # The RequestType must be one of the following: -->
@@ -231,7 +231,7 @@ sub ItemShipped {
             ],
             RequestId => [
                 AgencyId => $required->('from_agency'),
-                RequestIdentifierValue => $required->('requestidentifiervalue'),
+                RequestIdentifierValue => $required->('request_id'),
             ],
             ItemId => [
                 ItemIdentifierType => $required->('itemidentifiertype'),
@@ -241,12 +241,7 @@ sub ItemShipped {
             DateShipped => iso8601($required->('date_shipped')),
             ShippingInformation => [
                 PhysicalAddress => [
-                    StructuredAddress => [
-                        Street => $required->('address'),
-                        Region => $required->('city'),
-                        Country => $required->('country'),
-                        PostalCode => $required->('zipcode'),
-                    ],
+                    StructuredAddress => [%{ $required->('address') }],
                     PhysicalAddressType => [], # TODO ??? why an empty tag?
                 ],
             ],
@@ -280,7 +275,7 @@ sub ItemReceived {
             ],
             RequestId => [
                 AgencyId => $required->('from_agency'),
-                RequestIdentifierValue => $required->('requestidentifiervalue'),
+                RequestIdentifierValue => $required->('request_id'),
             ],
             ItemId => [
                 ItemIdentifierType => $required->('itemidentifiertype'),
