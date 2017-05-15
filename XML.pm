@@ -115,26 +115,6 @@ sub RequestItem {
         $args{$k};
     };
 
-    my @itemId;
-    if ($required->('item_type') =~ m{^(Barcode)$} ) {
-        # The ItemId must uniquely identify the requested Item in the scope of the FromAgencyId. -->
-        # The ToAgency may then mirror back this ItemId in a RequestItem-call to order it.-->
-        # Note: NNCIPP do not support use of BibliographicId insted of ItemId, in this case. -->
-        @itemId = (ItemId => [
-            ItemIdentifierType => $required->('item_type'),
-            ItemIdentifierValue => $required->('item_id'),
-        ]);
-    } elsif ($required->('item_type') =~ m{^(ISBN|ISSN|EAN)$} ) {
-        # All Items must have a scannable Id either a RFID or a Barcode or Both. -->
-        # In the case of both, start with the Barcode, use colon and no spaces as delimitor.-->
-        @itemId = (BibliographicId => [
-            ItemIdentifierType => $required->('item_type'),
-            ItemIdentifierValue => $required->('item_id'),
-        ]);
-    } else {
-        die "invalid item_type: '$args{item_type}'";
-    }
-
     return $self->build(
         RequestItem => [
             InitiationHeader => [
@@ -144,7 +124,27 @@ sub RequestItem {
             UserId => [ # The UserId must be a NLR-Id (National Patron Register) -->
                 UserIdentifierValue => $required->('userid'),
             ],
-            @itemId,
+            sub {
+                if ($required->('item_type') =~ m{^(Barcode)$} ) {
+                    # The ItemId must uniquely identify the requested Item in the scope of the FromAgencyId. -->
+                    # The ToAgency may then mirror back this ItemId in a RequestItem-call to order it.-->
+                    # Note: NNCIPP do not support use of BibliographicId insted of ItemId, in this case. -->
+                    return ItemId => [
+                        ItemIdentifierType => $required->('item_type'),
+                        ItemIdentifierValue => $required->('item_id'),
+                    ];
+                } elsif ($required->('item_type') =~ m{^(ISBN|ISSN|EAN)$} ) {
+                    # All Items must have a scannable Id either a RFID or a Barcode or Both. -->
+                    # In the case of both, start with the Barcode, use colon and no spaces as delimitor.-->
+                    return BibliographicId => [
+                        ItemIdentifierType => $required->('item_type'),
+                        ItemIdentifierValue => $required->('item_id'),
+                    ];
+                } else {
+                    die "invalid item_type: '$args{item_type}'";
+                }
+            },
+            #@itemId,
             RequestId => [
                 # The initializing AgencyId must be part of the RequestId -->
                 AgencyId => $required->('from_agency'),
@@ -330,20 +330,24 @@ sub build {
     $doc->setDocumentElement($root);
 
     my $appender; $appender = sub {
-        my ($parent, $data) = @_;
-        if (ref $data) {
-            my @list = @$data;
+        my ($parent, $list) = @_;
+        if (ref $list) {
+            my @list = @$list;
             while(@list) {
                 my $name = shift @list;
-                my $data = shift @list;
-
+                my $data;
+                if ("CODE" eq ref $name) {
+                    ($name, $data) = $name->();
+                } else {
+                    $data = shift @list;
+                }
                 my $node = $doc->createElement($name);
                 $node->setNamespace('http://www.niso.org/2008/ncip' => ns1 => 1);
                 $parent->appendChild($node);
                 $appender->($node, $data) if $data;
             }
         } else {
-            $parent->appendText($data);
+            $parent->appendText($list);
         }
     };
     $appender->($root, \@data);
