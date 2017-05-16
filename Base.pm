@@ -225,10 +225,11 @@ sub metadata {
         OrderFrom => 'order_from',
     );
 
-    my %attr = map {
-        my $v = $attrs->find({ type => $map{$_} });
-        return $v ? ($_ => $v->value) : ($_ => undef);
-    } keys %map;
+    my %attr;
+    for my $k (keys %map) {
+        my $v = $attrs->find({ type => $map{$k} });
+        $attr{$k} = $v->value if defined $v;
+    }
 
     return \%attr;
 }
