@@ -143,7 +143,7 @@ sub SendRequestItem {
     my $ItemIdentifierType  = $types{ lc $args->{'ItemIdentifierType'} };
     my $ItemIdentifierValue = $args->{'ItemIdentifierValue'};
 
-    my $xml = $self->{XML}->new(
+    my $xml = $self->{XML}->RequestItem(
         from_agency => "NO-".C4::Context->preference('ILLISIL'),
         to_agency => "NO-".$args->{ordered_from},
         userid => $args->{cardnumber},
