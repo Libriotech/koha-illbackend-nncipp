@@ -218,10 +218,10 @@ sub metadata {
     my ( $self, $request ) = @_;
     my $attrs = $request->illrequestattributes;
     my %map = (
-        ID => 'id',
+        # ID => 'id',
         Title => 'title',
         Author => 'author',
-        Status => 'status',
+        # Status => 'status',
         OrderFrom => 'order_from',
     );
 
