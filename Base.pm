@@ -217,6 +217,19 @@ illrequestattributes store.
 sub metadata {
     my ( $self, $request ) = @_;
     my $attrs = $request->illrequestattributes;
+
+    if (my $biblio_id = $request->biblio_id) {
+        my $b = C4::Biblio::GetBiblio( $biblio_id, 1 );
+        use Data::Dumper; warn Dumper($b);
+        my $title = $b->{title} // '-';
+        my $author = $b->{author} // '-';
+        return {
+            Title => $title,
+            Author => $author,
+            OrderFrom => '-', # FIXME
+        };
+    }
+
     my %map = (
         # ID => 'id',
         Title => 'title',
