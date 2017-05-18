@@ -228,15 +228,47 @@ sub SendRequestItem {
 
 }
 
+=head2 SendItemShipped
+
+Send an ItemShipped message. This message can be sent in two different scenarios:
+
+=over 4
+
+=item 1 The Owner Library has sent the book to the Home Library. The status will
+change from O_REQUESTITEM to O_ITEMSHIPPED.
+
+=item 2 The Home Library has sent the book back to the Owner Library. Status
+changes from H_ITEMRECEIVED to H_RETURNED.
+
+=back
+
+=cut
+
 sub SendItemShipped {
 
     my ( $self, $params ) = @_;
 
     my $req = $params->{request};
 
+    # Set up the values that differ for the two scenarios described in the POD
+    my $shipped_by;
+    my $new_status;
+    my $other_library;
+    if ( $req->status eq 'O_REQUESTITEM' ) {
+        # 1. Owner sends to Home
+        $shipped_by = 'ShippedBy.Lender';
+        $new_status = 'O_ITEMSHIPPED';
+        $other_library = $args->{requested_by};
+    } elsif ( $req->status eq 'H_ITEMRECEIVED' ) {
+        # 2. Home sends to Owner
+        $shipped_by = 'ShippedBy.Borrower';
+        $new_status = 'H_RETURNED';
+        $other_library = $args->{ordered_from};
+    }
+
     my $xml = $self->{XML}->ItemShipped(
         from_agency => C4::Context->preference('ILLISIL'), # Us
-        to_agency => "NO-".$args->{ordered_from}, # The library that wants to borrow the item
+        to_agency => "NO-".$other_library,
         request_id => $req->illrequestattributes->find({ type => 'RequestIdentifierValue' })->value, # Our illrequest_id
         itemidentifiertype => $req->illrequestattributes->find({ type => 'ItemIdentifierType' })->value,
         itemidentifiervalue => $req->illrequestattributes->find({ type => 'ItemIdentifierValue' })->value,
@@ -250,16 +282,16 @@ sub SendItemShipped {
         },
         # PhysicalAddressType => [], # TODO ??? why an empty tag?
         # bibliographic_description # FIXME "If an alternative Item is shipped to fulfill a loan"
-        shipped_by => 'ShippedBy.Lender',
+        shipped_by => $shipped_by,
     );
 
-    my $nncip_uri = GetBorrowerAttributeValue( $req->borrowernumber, 'nncip_uri' );
-    my $response = _send_message( 'ItemRequested', $xml->toString(1), $nncip_uri );
+    my $nncip_uri = GetBorrowerAttributeValue( _cardnumber2borrowernumber( $other_library ), 'nncip_uri' );
+    my $response = _send_message( 'ItemShipped', $xml->toString(1), $nncip_uri );
 
     # Check the response, change the status
     if ( $response->{'success'} == 1 && $response->{'problem'} == 0 ) {
         warn "OK";
-        $req->status( 'O_ITEMSHIPPED' )->store;
+        $req->status( $new_status )->store;
     } else {
         # TODO
         warn "NOT OK";
@@ -270,29 +302,60 @@ sub SendItemShipped {
 
 }
 
+=head2 SendItemReceived
+
+Send an ItemReceived message. Similar to ItemShipped, this will be triggered in
+one of two ways:
+
+=over 4
+
+=item 1 The Home Library has received the book from the Owner Library. Status
+will change from H_ITEMSHIPPED to H_ITEMRECEIVED.
+
+=item 2 The Owner Library has received the book from the Home Library. Status
+will change from O_RETURNED to DONE.
+
+=cut
+
 sub SendItemReceived {
 
     my ( $self, $params ) = @_;
 
     my $req = $params->{request};
 
+    # Set up the values that differ for the two scenarios described in the POD
+    my $received_by;
+    my $new_status;
+    my $other_library;
+    if ( $req->status eq 'H_ITEMSHIPPED' ) {
+        # 1. Home has received from Owner
+        $received_by = 'ReceivedBy.Borrower';
+        $new_status = 'H_ITEMRECEIVED';
+        $other_library = $args->{ordered_from};
+    } elsif ( $req->status eq 'O_RETURNED' ) {
+        # 2. Owner has received from Home
+        $received_by = 'ReceivedBy.Lender';
+        $new_status = 'DONE';
+        $other_library = $args->{requested_by};
+    }
+
     my $xml = $self->{XML}->ItemReceived(
         from_agency => C4::Context->preference('ILLISIL'), # Us
-        to_agency => $req->borrowernumber, # The library that wants to borrow the item
+        to_agency => $other_library,
         request_id => $req->illrequestattributes->find({ type => 'RequestIdentifierValue' })->value,
         itemidentifiertype => $req->illrequestattributes->find({ type => 'ItemIdentifierType' })->value,
         itemidentifiervalue => $req->illrequestattributes->find({ type => 'ItemIdentifierValue' })->value,
         date_received => '2017-05-15', # FIXME Use date and time now
-        received_by => 'ReceivedBy.Borrower',
+        received_by => $received_by,
     );
 
-    my $nncip_uri = GetBorrowerAttributeValue( $req->borrowernumber, 'nncip_uri' );
+    my $nncip_uri = GetBorrowerAttributeValue( _cardnumber2borrowernumber( $other_library ), 'nncip_uri' );
     my $response = _send_message( 'ItemReceived', $xml->toString(1), $nncip_uri );
 
     # Check the response, change the status
     if ( $response->{'success'} == 1 && $response->{'problem'} == 0 ) {
         warn "OK";
-        $req->status( 'H_ITEMRECEIVED' )->store;
+        $req->status( $new_status )->store;
     } else {
         # TODO
         warn "NOT OK";
@@ -304,6 +367,20 @@ sub SendItemReceived {
 }
 
 =head1 INTERNAL SUBROUTINES
+
+=head2 _cardnumber2borrowernumber
+
+Given a barcode, return the corresponding barcode.
+
+=cut
+
+sub _barcode2borrowernumber {
+
+    my ( $cardnumber ) = @_;
+    my $borrower = GetMember( 'cardnumber' => $cardnumber );
+    return $borrower->{borrowernumber};
+
+}
 
 =head2 _send_message
 
