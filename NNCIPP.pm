@@ -236,7 +236,7 @@ sub SendItemShipped {
 
     my $xml = $self->{XML}->ItemShipped(
         from_agency => C4::Context->preference('ILLISIL'), # Us
-        to_agency => $req->borrowernumber, # The library that wants to borrow the item
+        to_agency => "NO-".$args->{ordered_from}, # The library that wants to borrow the item
         request_id => $req->illrequestattributes->find({ type => 'RequestIdentifierValue' })->value, # Our illrequest_id
         itemidentifiertype => $req->illrequestattributes->find({ type => 'ItemIdentifierType' })->value,
         itemidentifiervalue => $req->illrequestattributes->find({ type => 'ItemIdentifierValue' })->value,
