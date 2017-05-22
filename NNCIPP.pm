@@ -250,6 +250,7 @@ sub SendItemShipped {
     my ( $self, $params ) = @_;
 
     my $req = $params->{request};
+    my $patron = $req->patron;
 
     # Set up the values that differ for the two scenarios described in the POD
     my $shipped_by;
@@ -259,7 +260,7 @@ sub SendItemShipped {
         # 1. Owner sends to Home
         $shipped_by = 'ShippedBy.Lender';
         $new_status = 'O_ITEMSHIPPED';
-        $other_library = $params->{borrowernumber};
+        $other_library = $patron->borrowernumber;
     } elsif ( $req->status eq 'H_ITEMRECEIVED' ) {
         # 2. Home sends to Owner
         $shipped_by = 'ShippedBy.Borrower';
@@ -285,8 +286,7 @@ sub SendItemShipped {
         # bibliographic_description # FIXME "If an alternative Item is shipped to fulfill a loan"
         shipped_by => $shipped_by,
     );
-
-    my $nncip_uri = GetBorrowerAttributeValue( _cardnumber2borrowernumber( $other_library ), 'nncip_uri' );
+    my $nncip_uri = GetBorrowerAttributeValue($patron->borrowernumber, 'nncip_uri') or die "nncip_uri missing for borrower: ".$patron->borrowernumber;
     my $response = _send_message( 'ItemShipped', $xml->toString(1), $nncip_uri );
 
     # Check the response, change the status
