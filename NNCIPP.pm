@@ -269,8 +269,8 @@ sub SendItemShipped {
     }
 
     my $xml = $self->{XML}->ItemShipped(
-        from_agency => C4::Context->preference('ILLISIL'), # Us
-        to_agency => "NO-".$other_library,
+        from_agency => "NO-".C4::Context->preference('ILLISIL'), # Us
+        to_agency => "NO-"._borrowernumber2cardnumber( $other_library ),
         request_id => $req->illrequestattributes->find({ type => 'RequestIdentifierValue' })->value, # Our illrequest_id
         itemidentifiertype => $req->illrequestattributes->find({ type => 'ItemIdentifierType' })->value,
         itemidentifiervalue => $req->illrequestattributes->find({ type => 'ItemIdentifierValue' })->value,
@@ -286,7 +286,7 @@ sub SendItemShipped {
         # bibliographic_description # FIXME "If an alternative Item is shipped to fulfill a loan"
         shipped_by => $shipped_by,
     );
-    my $nncip_uri = GetBorrowerAttributeValue($patron->borrowernumber, 'nncip_uri') or die "nncip_uri missing for borrower: ".$patron->borrowernumber;
+    my $nncip_uri = GetBorrowerAttributeValue($other_library, 'nncip_uri') or die "nncip_uri missing for borrower: ".$other_library;
     my $response = _send_message( 'ItemShipped', $xml->toString(1), $nncip_uri );
 
     # Check the response, change the status
@@ -341,8 +341,8 @@ sub SendItemReceived {
     }
 
     my $xml = $self->{XML}->ItemReceived(
-        from_agency => C4::Context->preference('ILLISIL'), # Us
-        to_agency => $other_library,
+        from_agency => "NO-".C4::Context->preference('ILLISIL'), # Us
+        to_agency => "NO-"._borrowernumber2cardnumber( $other_library ),
         request_id => $req->illrequestattributes->find({ type => 'RequestIdentifierValue' })->value,
         itemidentifiertype => $req->illrequestattributes->find({ type => 'ItemIdentifierType' })->value,
         itemidentifiervalue => $req->illrequestattributes->find({ type => 'ItemIdentifierValue' })->value,
@@ -350,7 +350,7 @@ sub SendItemReceived {
         received_by => $received_by,
     );
 
-    my $nncip_uri = GetBorrowerAttributeValue( _cardnumber2borrowernumber( $other_library ), 'nncip_uri' );
+    my $nncip_uri = GetBorrowerAttributeValue($other_library, 'nncip_uri') or die "nncip_uri missing for borrower: ".$other_library;
     my $response = _send_message( 'ItemReceived', $xml->toString(1), $nncip_uri );
 
     # Check the response, change the status
@@ -369,9 +369,23 @@ sub SendItemReceived {
 
 =head1 INTERNAL SUBROUTINES
 
+=head2 _borrowernumber2cardnumber
+
+Given a borrowernumber, return the corresponding cardnumber.
+
+=cut
+
+sub _borrowernumber2cardnumber {
+
+    my ( $borrowernumber ) = @_;
+    my $borrower = GetMember( 'borrowernumber' => $borrowernumber );
+    return $borrower->{cardnumber};
+
+}
+
 =head2 _cardnumber2borrowernumber
 
-Given a barcode, return the corresponding barcode.
+Given a cardnumber, return the corresponding borrowernumber.
 
 =cut
 
