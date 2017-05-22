@@ -258,6 +258,7 @@ sub SendItemShipped {
     my $other_library;
     my $agency_id;
     my $request_id;
+    my $user_id;
     if ( $req->status eq 'O_REQUESTITEM' ) {
         # 1. Owner sends to Home
         $shipped_by = 'ShippedBy.Lender';
@@ -265,6 +266,7 @@ sub SendItemShipped {
         $other_library = $patron->borrowernumber;
         $agency_id = _borrowernumber2cardnumber( $patron->borrowernumber );
         $request_id = $req->illrequestattributes->find({ type => 'RequestIdentifierValue' })->value,
+        $user_id = $req->illrequestattributes->find({ type => 'UserIdentifierValue' })->value;
     } elsif ( $req->status eq 'H_ITEMRECEIVED' ) {
         # 2. Home sends to Owner
         $shipped_by = 'ShippedBy.Borrower';
@@ -272,6 +274,7 @@ sub SendItemShipped {
         $other_library = $req->illrequestattributes->find({ type => 'ordered_from_borrowernumber' })->value;
         $agency_id = C4::Context->preference('ILLISIL');
         $request_id = $req->illrequest_id;
+        $user_id = _borrowernumber2cardnumber( $req->borrowernumber );
     }
 
     my $xml = $self->{XML}->ItemShipped(
@@ -281,7 +284,7 @@ sub SendItemShipped {
         request_id => $request_id,
         itemidentifiertype => $req->illrequestattributes->find({ type => 'ItemIdentifierType' })->value,
         itemidentifiervalue => $req->illrequestattributes->find({ type => 'ItemIdentifierValue' })->value,
-        userid => $req->illrequestattributes->find({ type => 'UserIdentifierValue' })->value,
+        userid => $user_id,
         date_shipped => '2017-05-15', # FIXME Use date and time now
         address => { # FIXME
             street => 'Narrowgata',
