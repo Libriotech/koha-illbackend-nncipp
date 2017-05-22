@@ -230,7 +230,7 @@ sub ItemShipped {
                 ToAgencyId => [ AgencyId => $required->('to_agency') ], # HOME
             ],
             RequestId => [
-                AgencyId => $required->('from_agency'),
+                AgencyId => $required->('agency_id'),
                 RequestIdentifierValue => $required->('request_id'),
             ],
             ItemId => [
@@ -274,7 +274,7 @@ sub ItemReceived {
                 ToAgencyId => [ AgencyId => $required->('to_agency') ], # HOME
             ],
             RequestId => [
-                AgencyId => $required->('from_agency'),
+                AgencyId => $required->('agency_id'),
                 RequestIdentifierValue => $required->('request_id'),
             ],
             ItemId => [

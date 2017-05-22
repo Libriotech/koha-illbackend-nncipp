@@ -256,21 +256,25 @@ sub SendItemShipped {
     my $shipped_by;
     my $new_status;
     my $other_library;
+    my $agency_id;
     if ( $req->status eq 'O_REQUESTITEM' ) {
         # 1. Owner sends to Home
         $shipped_by = 'ShippedBy.Lender';
         $new_status = 'O_ITEMSHIPPED';
         $other_library = $patron->borrowernumber;
+        $agency_id = _borrowernumber2cardnumber( $patron->borrowernumber );
     } elsif ( $req->status eq 'H_ITEMRECEIVED' ) {
         # 2. Home sends to Owner
         $shipped_by = 'ShippedBy.Borrower';
         $new_status = 'H_RETURNED';
         $other_library = $req->illrequestattributes->find({ type => 'ordered_from' })->value;
+        $agency_id = C4::Context->preference('ILLISIL');
     }
 
     my $xml = $self->{XML}->ItemShipped(
         from_agency => "NO-".C4::Context->preference('ILLISIL'), # Us
         to_agency => "NO-"._borrowernumber2cardnumber( $other_library ),
+        agency_id => $agency_id, # For the RequestId
         request_id => $req->illrequestattributes->find({ type => 'RequestIdentifierValue' })->value, # Our illrequest_id
         itemidentifiertype => $req->illrequestattributes->find({ type => 'ItemIdentifierType' })->value,
         itemidentifiervalue => $req->illrequestattributes->find({ type => 'ItemIdentifierValue' })->value,
@@ -328,21 +332,25 @@ sub SendItemReceived {
     my $received_by;
     my $new_status;
     my $other_library;
+    my $agency_id;
     if ( $req->status eq 'H_ITEMSHIPPED' ) {
         # 1. Home has received from Owner
         $received_by = 'ReceivedBy.Borrower';
         $new_status = 'H_ITEMRECEIVED';
         $other_library = $req->illrequestattributes->find({ type => 'ordered_from' })->value;
+        $agency_id = C4::Context->preference('ILLISIL');
     } elsif ( $req->status eq 'O_RETURNED' ) {
         # 2. Owner has received from Home
         $received_by = 'ReceivedBy.Lender';
         $new_status = 'DONE';
         $other_library = $params->{borrowernumber};
+        $agency_id = _borrowernumber2cardnumber( $params->borrowernumber );
     }
 
     my $xml = $self->{XML}->ItemReceived(
         from_agency => "NO-".C4::Context->preference('ILLISIL'), # Us
         to_agency => "NO-"._borrowernumber2cardnumber( $other_library ),
+        agency_id = $agency_id, # For the RequestId
         request_id => $req->illrequestattributes->find({ type => 'RequestIdentifierValue' })->value,
         itemidentifiertype => $req->illrequestattributes->find({ type => 'ItemIdentifierType' })->value,
         itemidentifiervalue => $req->illrequestattributes->find({ type => 'ItemIdentifierValue' })->value,
