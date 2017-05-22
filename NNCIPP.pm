@@ -269,7 +269,7 @@ sub SendItemShipped {
         # 2. Home sends to Owner
         $shipped_by = 'ShippedBy.Borrower';
         $new_status = 'H_RETURNED';
-        $other_library = $req->illrequestattributes->find({ type => 'ordered_from' })->value;
+        $other_library = $req->illrequestattributes->find({ type => 'ordered_from_borrowernumber' })->value;
         $agency_id = C4::Context->preference('ILLISIL');
         $request_id = $req->illrequest_id;
     }
@@ -341,7 +341,7 @@ sub SendItemReceived {
         # 1. Home has received from Owner
         $received_by = 'ReceivedBy.Borrower';
         $new_status = 'H_ITEMRECEIVED';
-        $other_library = $req->illrequestattributes->find({ type => 'ordered_from' })->value;
+        $other_library = $req->illrequestattributes->find({ type => 'ordered_from_borrowernumber' })->value;
         $agency_id = C4::Context->preference('ILLISIL');
         $request_id = $req->illrequest_id;
     } elsif ( $req->status eq 'O_RETURNED' ) {
