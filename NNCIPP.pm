@@ -259,7 +259,7 @@ sub SendItemShipped {
         # 1. Owner sends to Home
         $shipped_by = 'ShippedBy.Lender';
         $new_status = 'O_ITEMSHIPPED';
-        $other_library = $params->{requested_by};
+        $other_library = $params->{borrowernumber};
     } elsif ( $req->status eq 'H_ITEMRECEIVED' ) {
         # 2. Home sends to Owner
         $shipped_by = 'ShippedBy.Borrower';
@@ -337,7 +337,7 @@ sub SendItemReceived {
         # 2. Owner has received from Home
         $received_by = 'ReceivedBy.Lender';
         $new_status = 'DONE';
-        $other_library = $params->{requested_by};
+        $other_library = $params->{borrowernumber};
     }
 
     my $xml = $self->{XML}->ItemReceived(
