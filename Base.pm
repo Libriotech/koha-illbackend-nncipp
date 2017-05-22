@@ -280,13 +280,13 @@ sub status_graph {
             ui_method_icon => 'fa-send-o',                   # UI Style class
         },
         H_ITEMSHIPPED => {
-            prev_actions => [ 'O_REQUESTITEM' ],                           # Actions containing buttons
+            prev_actions => [ 'H_REQUESTITEM' ],                           # Actions containing buttons
                                                            # leading to this status
             id             => 'H_ITEMSHIPPED',                   # ID of this status
             name           => 'Item shipped',                   # UI name of this status
             ui_method_name => 'Ship item',                   # UI name of method leading
                                                            # to this status
-            method         => 'itemshipped',                    # method to this status
+            method         => '',                    # method to this status
             next_actions   => [ 'KILL', 'H_ITEMRECEIVED' ], # buttons to add to all
                                                            # requests with this status
             ui_method_icon => 'fa-send-o',                   # UI Style class
@@ -299,7 +299,19 @@ sub status_graph {
             ui_method_name => 'Receive item',                   # UI name of method leading
                                                            # to this status
             method         => 'itemreceived',                    # method to this status
-            next_actions   => [ 'KILL' ], # buttons to add to all
+            next_actions   => [ 'KILL', 'H_RETURNED' ], # buttons to add to all
+                                                           # requests with this status
+            ui_method_icon => 'fa-inbox',                   # UI Style class
+        },
+        H_RETURNED => {
+            prev_actions => [ 'H_ITEMRECEIVED' ],                           # Actions containing buttons
+                                                           # leading to this status
+            id             => 'H_RETURNED',                   # ID of this status
+            name           => 'Item returned',                   # UI name of this status
+            ui_method_name => 'Return item',                   # UI name of method leading
+                                                           # to this status
+            method         => 'itemshipped',                    # method to this status
+            next_actions   => [ 'KILL', 'DONE' ], # buttons to add to all
                                                            # requests with this status
             ui_method_icon => 'fa-inbox',                   # UI Style class
         },
@@ -330,7 +342,7 @@ sub status_graph {
             ui_method_icon => 'fa-send-o',                   # UI Style class
         },
         O_ITEMSHIPPED => {
-            prev_actions => [ 'O_ITEMREQUESTED' ],                           # Actions containing buttons
+            prev_actions => [ 'O_REQUESTITEM' ],                           # Actions containing buttons
                                                            # leading to this status
             id             => 'O_ITEMSHIPPED',                   # ID of this status
             name           => 'Item shipped',                   # UI name of this status
@@ -341,6 +353,45 @@ sub status_graph {
                                                            # requests with this status
             ui_method_icon => 'fa-send-o',                   # UI Style class
         },
+        O_ITEMRECEIVED => {
+            prev_actions => [ 'O_ITEMSHIPPED' ],                           # Actions containing buttons
+                                                           # leading to this status
+            id             => 'O_ITEMRECEIVED',                   # ID of this status
+            name           => 'Item received',                   # UI name of this status
+            ui_method_name => 'Receive item',                   # UI name of method leading
+                                                           # to this status
+            method         => '',                    # method to this status
+            next_actions   => [ 'KILL', 'O_RETURNED' ], # buttons to add to all
+                                                           # requests with this status
+            ui_method_icon => 'fa-inbox',                   # UI Style class
+        },
+        O_RETURNED => {
+            prev_actions => [ 'O_ITEMRECEIVED' ],                           # Actions containing buttons
+                                                           # leading to this status
+            id             => 'O_RETURNED',                   # ID of this status
+            name           => 'Item received from ',                   # UI name of this status
+            ui_method_name => 'Return item',                   # UI name of method leading
+                                                           # to this status
+            method         => 'itemreceived',                    # method to this status
+            next_actions   => [ 'KILL', 'DONE' ], # buttons to add to all
+                                                           # requests with this status
+            ui_method_icon => 'fa-inbox',                   # UI Style class
+        },
+
+        # Common statuses
+        DONE => {
+            prev_actions => [ 'H_RETURNED', 'O_RETURNED' ],                           # Actions containing buttons
+                                                           # leading to this status
+            id             => 'DONE',                   # ID of this status
+            name           => 'Transaction completed',                   # UI name of this status
+            ui_method_name => 'Done',                   # UI name of method leading
+                                                           # to this status
+            method         => 'itemreceived',                    # method to this status
+            next_actions   => [], # buttons to add to all
+                                                           # requests with this status
+            ui_method_icon => 'fa-inbox',                   # UI Style class
+        },
+
     };
 }
 
