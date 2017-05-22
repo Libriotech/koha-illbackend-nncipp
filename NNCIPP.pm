@@ -350,7 +350,7 @@ sub SendItemReceived {
     my $xml = $self->{XML}->ItemReceived(
         from_agency => "NO-".C4::Context->preference('ILLISIL'), # Us
         to_agency => "NO-"._borrowernumber2cardnumber( $other_library ),
-        agency_id = $agency_id, # For the RequestId
+        agency_id => $agency_id, # For the RequestId
         request_id => $req->illrequestattributes->find({ type => 'RequestIdentifierValue' })->value,
         itemidentifiertype => $req->illrequestattributes->find({ type => 'ItemIdentifierType' })->value,
         itemidentifiervalue => $req->illrequestattributes->find({ type => 'ItemIdentifierValue' })->value,
