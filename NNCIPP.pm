@@ -22,6 +22,7 @@ use Koha::Illbackends::NNCIPP::XML;
 use C4::Biblio;
 use C4::Items;
 use C4::Log;
+use C4::Members;
 use C4::Members::Attributes qw ( GetBorrowerAttributeValue );
 
 use Data::Dumper; # FIXME Debug
