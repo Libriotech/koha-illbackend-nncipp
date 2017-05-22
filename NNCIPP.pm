@@ -374,7 +374,7 @@ Given a barcode, return the corresponding barcode.
 
 =cut
 
-sub _barcode2borrowernumber {
+sub _cardnumber2borrowernumber {
 
     my ( $cardnumber ) = @_;
     my $borrower = GetMember( 'cardnumber' => $cardnumber );
