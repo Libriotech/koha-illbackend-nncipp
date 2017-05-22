@@ -264,7 +264,7 @@ sub SendItemShipped {
         # 2. Home sends to Owner
         $shipped_by = 'ShippedBy.Borrower';
         $new_status = 'H_RETURNED';
-        $other_library = $params->{ordered_from};
+        $other_library = $req->illrequestattributes->find({ type => 'ordered_from' })->value;
     }
 
     my $xml = $self->{XML}->ItemShipped(
@@ -332,7 +332,7 @@ sub SendItemReceived {
         # 1. Home has received from Owner
         $received_by = 'ReceivedBy.Borrower';
         $new_status = 'H_ITEMRECEIVED';
-        $other_library = $params->{ordered_from};
+        $other_library = $req->illrequestattributes->find({ type => 'ordered_from' })->value;
     } elsif ( $req->status eq 'O_RETURNED' ) {
         # 2. Owner has received from Home
         $received_by = 'ReceivedBy.Lender';
