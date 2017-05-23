@@ -1,0 +1,53 @@
+=pod
+
+    Status Owner   | Message and direction  |  Status Home
+ ************************************************************
+ Librarian from Home Library logs into the OPAC of the Owner
+ Library and places an ILL request for an item. 
+ ------------------------------------------------------------
+ (O_ITEMREQUESTED) |    ItemRequested (8)   | H_ITEMREQUESTED
+                   |    -------------->     | 
+ ------------------------------------------------------------
+ ItemRequested is not given an ill_request by the Owner
+ Library. Home Library returns RequestItem automatically,
+ without human intervention.
+ ------------------------------------------------------------
+  O_REQUESTITEM    |    RequestItem (3)     | H_ITEMREQUESTED
+                   |  <----------------     | H_REQUESTITEM
+ ------------------------------------------------------------
+ If Home Library decides to cancel the request, a 
+ CancelRequestItem is sent from Home Library to Owner 
+ Library and the transaction ends:
+ ------------------------------------------------------------
+  O_REQUESTITEM    | CancelRequestItem (10) | H_REQUESTITEM
+  DONE             |   <----------------    | DONE
+ ------------------------------------------------------------
+ If Owner Library decides they can not fullfill the request
+ (e.g. because the book was not found on the shelf) a
+ CancelRequestItem is sent from OwnerLibrary to HomeLibrary
+ and the transaction ends:
+ ------------------------------------------------------------
+  O_REQUESTITEM    | CancelRequestItem (11) | H_REQUESTITEM
+  DONE             |   ---------------->    | CANCELLED *
+ ------------------------------------------------------------
+  O_REQUESTITEM    |    ItemShipped (4)     | H_REQUESTITEM
+  O_ITEMSHIPPED    |   ---------------->    | H_ITEMSHIPPED
+ ------------------------------------------------------------
+  O_ITEMSHIPPED    |    ItemReceived (5)    | H_ITEMSHIPPED
+  O_ITEMRECEIVED   |   <----------------    | H_ITEMRECEIVED
+ ------------------------------------------------------------
+  O_ITEMRECEIVED   |     RenewItem (9)      | H_ITEMRECEIVED
+                   |   <----------------    | H_RENEWITEM
+                   |                        | H_ITEMRECEIVED
+                   |                        | renew_count++
+ ------------------------------------------------------------
+  O_ITEMRECEIVED   |    ItemShipped (6)     | H_ITEMRECEIVED
+  O_RETURNED       |   <----------------    | H_RETURNED
+ ------------------------------------------------------------
+  O_RETURNED       |   ItemReceived (7)     | H_RETURNED
+  DONE             |   ---------------->    | DONE
+ ------------------------------------------------------------
+ 
+ * = DONE, after human intervention.
+
+=cut
