@@ -352,7 +352,7 @@ sub SendItemReceived {
         $received_by = 'ReceivedBy.Lender';
         $new_status = 'DONE';
         $other_library = $params->{borrowernumber};
-        $agency_id = _borrowernumber2cardnumber( $params->borrowernumber );
+        $agency_id = $req->illrequestattributes->find({ type => 'AgencyId' })->value,
         $request_id = $req->illrequestattributes->find({ type => 'RequestIdentifierValue' })->value,
     }
 
@@ -367,7 +367,7 @@ sub SendItemReceived {
         received_by => $received_by,
     );
 
-    my $nncip_uri = GetBorrowerAttributeValue($other_library, 'nncip_uri') or die "nncip_uri missing for borrower: ".$other_library;
+    my $nncip_uri = GetBorrowerAttributeValue($req->borrowernumber, 'nncip_uri') or die "nncip_uri missing for borrower: ".$other_library;
     my $response = _send_message( 'ItemReceived', $xml->toString(1), $nncip_uri );
 
     # Check the response, change the status
