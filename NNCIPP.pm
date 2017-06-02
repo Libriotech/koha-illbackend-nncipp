@@ -254,6 +254,9 @@ sub SendCancelRequestItem {
 
     my ( $self, $params ) = @_;
 
+    my $req = $params->{request};
+    my $patron = $req->patron;
+
     my $cancelled_by;
     my $other_library;
     my $agency_id;
@@ -283,8 +286,8 @@ sub SendCancelRequestItem {
         itemidentifiertype => $req->illrequestattributes->find({ type => 'ItemIdentifierType' })->value,
         itemidentifiervalue => $req->illrequestattributes->find({ type => 'ItemIdentifierValue' })->value,
         userid => $user_id,
-        request_type = $req->illrequestattributes->find({ type => 'RequestType' })->value,
-        cancelled_by = $cancelled_by,
+        request_type => $req->illrequestattributes->find({ type => 'RequestType' })->value,
+        cancelled_by => $cancelled_by,
     );
 
     my $nncip_uri = GetBorrowerAttributeValue($req->borrowernumber, 'nncip_uri') or die "nncip_uri missing for borrower: ".$other_library;

@@ -271,16 +271,28 @@ sub status_graph {
             prev_actions => [ 'H_ITEMREQUESTED' ],                           # Actions containing buttons
                                                            # leading to this status
             id             => 'H_REQUESTITEM',                   # ID of this status
-            name           => 'Request Item',                   # UI name of this status
+            name           => 'Item requested',                   # UI name of this status
             ui_method_name => 'Request Item',                   # UI name of method leading
                                                            # to this status
             method         => 'requestitem',                    # method to this status
-            next_actions   => [ 'H_REQUESTITEM' ], # buttons to add to all
+            next_actions   => [ 'H_CANCELLED' ], # buttons to add to all
                                                            # requests with this status
             ui_method_icon => 'fa-send-o',                   # UI Style class
         },
-        H_ITEMSHIPPED => {
+        H_CANCELLED => { # Dummy status
             prev_actions => [ 'H_REQUESTITEM' ],                           # Actions containing buttons
+                                                           # leading to this status
+            id             => 'H_CANCELLED',                   # ID of this status
+            name           => 'Cancelled',                   # UI name of this status
+            ui_method_name => 'Cancel',                   # UI name of method leading
+                                                           # to this status
+            method         => 'cancelrequestitem',                    # method to this status
+            next_actions   => [  ], # buttons to add to all
+                                                           # requests with this status
+            ui_method_icon => 'fa-times',                   # UI Style class
+        },
+        H_ITEMSHIPPED => {
+            prev_actions => [  ],                           # Actions containing buttons
                                                            # leading to this status
             id             => 'H_ITEMSHIPPED',                   # ID of this status
             name           => 'Item shipped',                   # UI name of this status
@@ -380,7 +392,7 @@ sub status_graph {
 
         # Common statuses
         DONE => {
-            prev_actions => [ 'H_RETURNED', 'O_RETURNED' ],                           # Actions containing buttons
+            prev_actions => [  ],                           # Actions containing buttons
                                                            # leading to this status
             id             => 'DONE',                   # ID of this status
             name           => 'Transaction completed',                   # UI name of this status

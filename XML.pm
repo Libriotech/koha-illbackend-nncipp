@@ -182,14 +182,14 @@ sub CancelRequestItem {
                 ToAgencyId => [ AgencyId => $required->('to_agency') ], # OWNER
             ],
             RequestId => [ # The RequestId must be the one created by the initializing AgencyId in call #1 -->
-                AgencyId => $required->('cardnumber'),
+                AgencyId => $required->('agency_id'),
                 RequestIdentifierValue => $required->('request_id'),
             ],
             ItemId => [ # The ItemId must uniquely identify the requested Item in the scope of the ToAgencyId -->
                         # All Items must have a scannable Id either a RFID or a Barcode or Both. -->
                         # In the case of both, start with the Barcode, use colon and no spaces as delimitor.-->
-                ItemIdentifierType => 'Barcode',
-                ItemIdentifierValue => $required->('barcode'),
+                ItemIdentifierType => $required->('itemidentifiertype'),
+                ItemIdentifierValue => $required->('itemidentifiervalue'),
             ],
             UserId => [ UserIdentifierValue => $required->('userid') ],
             RequestType => $required->('request_type'),
