@@ -490,6 +490,33 @@ sub create {
 
 }
 
+=head2 cancelrequestitem
+
+Send a CancelRequestItem.
+
+=cut
+
+sub cancelrequestitem {
+
+    my ( $self, $params ) = @_;
+
+    my $nncipp = Koha::Illbackends::NNCIPP::NNCIPP->new();
+    my $resp = $nncipp->SendCancelRequestItem({
+        'request' => $params->{request},
+    });
+
+    return {
+        error    => 0,
+        status   => '',
+        message  => '',
+        method   => 'cancelrequestitem',
+        stage    => 'commit',
+        next     => 'illview',
+        value    => '',
+    };
+
+}
+
 =head2 itemshipped
 
 Send an ItemShipped message to another library as the Owner Library

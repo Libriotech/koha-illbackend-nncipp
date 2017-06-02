@@ -229,6 +229,81 @@ sub SendRequestItem {
 
 }
 
+=head3 SendCancelRequestItem
+
+Send a CancelRequestItem. 
+
+This can be called in two scenarios: 
+
+1. Cancellation by the Home Library (#10)
+
+After a RequestItem has been sent, and before the Owner Library has sent an
+ItemShipped, the Home Library can decide to cancel a RequestItem. The status
+at the Home Library will change from H_REQUESTITEM to DONE.
+
+2. Cancellation by the Owner Library (#11)
+
+After the Owner Library has received a RequestItem, it can decide that the
+requested item can not be lent (it might be e.g. missing from the shelf). The
+Owner Library will then send a CancelRequestItem to the Home Library, and the
+status at the Owner Library will change from O_REQUESTITEM to DONE.
+
+=cut
+
+sub SendCancelRequestItem {
+
+    my ( $self, $params ) = @_;
+
+    my $cancelled_by;
+    my $other_library;
+    my $agency_id;
+    my $request_id;
+    my $user_id;
+    if ( $req->status eq 'H_REQUESTITEM' ) {
+        # 1. Cancellation by the Home Library (#10)
+        $cancelled_by = 'CancelledBy.Borrower';
+        $other_library = $req->illrequestattributes->find({ type => 'ordered_from_borrowernumber' })->value;
+        $agency_id = C4::Context->preference('ILLISIL');
+        $request_id = $req->illrequest_id;
+        $user_id = _borrowernumber2cardnumber( $req->borrowernumber );
+    } elsif ( $req->status eq 'H_ITEMRECEIVED' ) {
+        # 2. Cancellation by the Owner Library (#11)
+        $cancelled_by = 'CancelledBy.Lender';
+        $other_library = $patron->borrowernumber;
+        $agency_id = _borrowernumber2cardnumber( $patron->borrowernumber );
+        $request_id = $req->illrequestattributes->find({ type => 'RequestIdentifierValue' })->value,
+        $user_id = $req->illrequestattributes->find({ type => 'UserIdentifierValue' })->value;
+    }
+
+    my $xml = $self->{XML}->CancelRequestItem(
+        from_agency => "NO-".C4::Context->preference('ILLISIL'), # Us
+        to_agency => "NO-"._borrowernumber2cardnumber( $other_library ),
+        agency_id => $agency_id, # For the RequestId
+        request_id => $request_id,
+        itemidentifiertype => $req->illrequestattributes->find({ type => 'ItemIdentifierType' })->value,
+        itemidentifiervalue => $req->illrequestattributes->find({ type => 'ItemIdentifierValue' })->value,
+        userid => $user_id,
+        request_type = $req->illrequestattributes->find({ type => 'RequestType' })->value,
+        cancelled_by = $cancelled_by,
+    );
+
+    my $nncip_uri = GetBorrowerAttributeValue($req->borrowernumber, 'nncip_uri') or die "nncip_uri missing for borrower: ".$other_library;
+    my $response = _send_message( 'ItemReceived', $xml->toString(1), $nncip_uri );
+
+    # Check the response, change the status
+    if ( $response->{'success'} == 1 && $response->{'problem'} == 0 ) {
+        warn "OK";
+        $req->status( 'DONE' )->store;
+    } else {
+        # TODO
+        warn "NOT OK";
+        warn Dumper $response;
+    }
+
+    return $response;
+
+}
+
 =head2 SendItemShipped
 
 Send an ItemShipped message. This message can be sent in two different scenarios:
