@@ -87,14 +87,16 @@ Arguments:
 =cut
 
 sub SendItemRequested {
-
     my ( $self, $biblionumber, $borrower, $userid ) = @_;
 
-    # FIXME Return with an error if there is no nncip_uri
-    my $nncip_uri = GetBorrowerAttributeValue( $borrower->borrowernumber, 'nncip_uri' );
+    $biblionumber or die "you must specify a biblionumber";
+    $borrower or die "you must specify a borrower";
+
+    my $borrowernumber = $borrower->borrowernumber or die "no borrowernumber";
+    my $nncip_uri = GetBorrowerAttributeValue( $borrowernumber, 'nncip_uri' ) or die "no nncip_uri for '$borrowernumber'";
 
     # Get more data about the record
-    my $bibliodata   = GetBiblioData( $biblionumber );
+    my $bibliodata   = GetBiblioData( $biblionumber ) or die "can't find biblionumber: $biblionumber";
 
     # Pick out an item to tie the request to (we take the first one that has a barcode)
     my $barcode;
@@ -129,8 +131,9 @@ sub SendItemRequested {
 }
 
 sub SendRequestItem {
-
     my ( $self, $args ) = @_;
+    my $agency_bnum = $args->{borrowernumber}; # $args->{ordered_from_borrowernumber};
+    my $nncip_uri = GetBorrowerAttributeValue( $agency_bnum, 'nncip_uri' ) or die "no nncip_uri for '$agency_bnum'";
 
     my %types = (
         'barcode' => 'Barcode',
@@ -141,8 +144,8 @@ sub SendRequestItem {
     );
 
     # Construct ItemIdentifierType and ItemIdentifierValue
-    my $ItemIdentifierType  = $types{ lc $args->{'ItemIdentifierType'} };
-    my $ItemIdentifierValue = $args->{'ItemIdentifierValue'};
+    my $ItemIdentifierType  = $types{ lc $args->{'ItemIdentifierType'} } or die "invalid ItemIdentifierType: '$args->{ItemIdentifierType}'";
+    my $ItemIdentifierValue = $args->{'ItemIdentifierValue'} or die "missing ItemIdentifierValue";
 
     my $xml = $self->{XML}->RequestItem(
         from_agency => "NO-".C4::Context->preference('ILLISIL'),
@@ -499,10 +502,9 @@ Do the actual sending of XML messages to NCIP endpoints.
 =cut
 
 sub _send_message {
-
     my ( $req, $msg, $endpoint ) = @_;
-
-    warn "talking to $endpoint";
+    $msg or die "missing message";
+    $endpoint or die "missing endpoint"; warn "talking to $endpoint";
 
     logaction( 'ILL', $req, undef, $msg );
     my $response = HTTP::Tiny->new->request( 'POST', $endpoint, { 'content' => $msg } );
