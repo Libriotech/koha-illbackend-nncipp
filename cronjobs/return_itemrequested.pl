@@ -9,7 +9,6 @@ RequestItem messages to the owner library. Update status to H_REQUESTITEM.
 
 use C4::Members;
 use Koha::Illrequests;
-use Koha::Illbackends::NNCIPP::Base;
 use Koha::Illbackends::NNCIPP::NNCIPP;
 use Modern::Perl;
 use Data::Dumper;
