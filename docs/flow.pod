@@ -36,8 +36,17 @@
   O_ITEMSHIPPED    |    ItemReceived (5)    | H_ITEMSHIPPED
   O_ITEMRECEIVED   |   <----------------    | H_ITEMRECEIVED
  ------------------------------------------------------------
+ The Home Library can ask to have an item renewed by the Owner
+ Library. Immediately on sending the request for renewal, the
+ status will be set to H_RENEWITEM, so we can catch any that
+ failed completely. If the renewal is successfull, status 
+ will be set back to H_ITEMRECEIVED. If it is not successfull
+ it will be set to H_RENEWALREJECTED so someone can look at it.
+ An illrequestattribute will be used to count the renewals.
+ ------------------------------------------------------------
   O_ITEMRECEIVED   |     RenewItem (9)      | H_ITEMRECEIVED
                    |   <----------------    | H_RENEWITEM
+                   |                        | H_RENEWALREJECTED
                    |                        | H_ITEMRECEIVED
                    |                        | renew_count++
  ------------------------------------------------------------

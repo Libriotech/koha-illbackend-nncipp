@@ -393,6 +393,62 @@ sub SendItemReceived {
 
 }
 
+=head2 SendRenewItem
+
+Send a RenewItem message. This can only be sent from the Home Library to the
+Owner Library.
+
+We can only ask to renew an item if the status is H_ITEMRECEIVED. Immediately
+when the request for renewal is sent, we will set the status to H_RENEWITEM. This
+way we can catch requests that fail, without a valid response from the Owner
+Library. 
+
+If the request for renewal is confirmed, we change the status back to
+H_ITEMRECEIVED. 
+
+If it is not confirmed (renewal was not possible) we set the status to
+H_RENEWALREJECTED, so librarians can pick up on it.
+
+=cut
+
+sub SendRenewItem {
+
+    my ( $self, $params ) = @_;
+
+    my $req = $params->{request};
+
+    my $xml = $self->{XML}->RenewItem(
+        from_agency         => "NO-".C4::Context->preference('ILLISIL'), # Us
+        to_agency           => "NO-"._borrowernumber2cardnumber( $req->illrequestattributes->find({ type => 'ordered_from_borrowernumber' })->value ),
+        userid              => _borrowernumber2cardnumber( $req->borrowernumber ),
+        itemidentifiertype  => $req->illrequestattributes->find({ type => 'ItemIdentifierType' })->value,
+        itemidentifiervalue => $req->illrequestattributes->find({ type => 'ItemIdentifierValue' })->value,
+    );
+
+    my $nncip_uri = GetBorrowerAttributeValue( $req->borrowernumber, 'nncip_uri' ) or die "nncip_uri missing for borrower: ".$req->borrowernumber;
+    my $response = _send_message( 'RenewItem', $xml->toString(1), $nncip_uri );
+    $req->status( 'H_RENEWITEM' )->store;
+
+    # Check the response, change the status
+    if ( $response->{'success'} == 1 && $response->{'problem'} == 0 ) {
+        warn "Renewal OK";
+        $req->status( 'H_ITEMRECEIVED' )->store;
+        # FIXME Use an illrequestattribute to count the number of renewals
+        # FIXME Extend the due date of the loan, so the patron does not get reminders/fines
+    } elsif ( $response->{'success'} == 1 && $response->{'problem'} == 1 ) {
+        warn "Renewal NOT OK";
+        $req->status( 'H_RENEWALREJECTED' )->store;
+        # FIXME Send a message to the patron?
+    } else {
+        # TODO
+        warn "Response to renewal request NOT OK";
+        warn Dumper $response;
+    }
+
+    return $response;
+
+}
+
 =head1 INTERNAL SUBROUTINES
 
 =head2 _borrowernumber2cardnumber

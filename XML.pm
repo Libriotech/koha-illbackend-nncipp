@@ -289,6 +289,31 @@ sub ItemReceived {
     );
 }
 
+sub RenewItem {
+    my ($self, %args) = @_;
+    my $required = sub {
+        my ($k) = @_;
+        exists $args{$k} or Carp::croak "argument {$k} is required";
+        $args{$k};
+    };
+
+    return $self->build(
+        RenewItem => [ # Usage in NNCIPP 1.0 is in use-case 5, call #10: Home library informs Owner library that the requested Ioan is canceled by the Patron -->
+            InitiationHeader => [ # The InitiationHeader, stating from- and to-agency, is mandatory.
+                FromAgencyId => [ AgencyId => $required->('from_agency') ], # HOME
+                ToAgencyId => [ AgencyId => $required->('to_agency') ], # OWNER
+            ],
+            UserId => [ UserIdentifierValue => $required->('userid') ],
+            ItemId => [ # The ItemId must uniquely identify the requested Item in the scope of the ToAgencyId -->
+                        # All Items must have a scannable Id either a RFID or a Barcode or Both. -->
+                        # In the case of both, start with the Barcode, use colon and no spaces as delimitor.-->
+                ItemIdentifierType => $required->('itemidentifiertype'),
+                ItemIdentifierValue => $required->('itemidentifiervalue'),
+            ],
+        ],
+    );
+}
+
 =head2 build
 
 Build a proper NCIP XML document (with niso.org namespaces) from an Array references tree

@@ -315,6 +315,30 @@ sub status_graph {
                                                            # requests with this status
             ui_method_icon => 'fa-inbox',                   # UI Style class
         },
+        H_RENEWITEM => {
+            prev_actions => [ 'H_ITEMRECEIVED' ],                           # Actions containing buttons
+                                                           # leading to this status
+            id             => 'H_RENEWITEM',                   # ID of this status
+            name           => 'Request for renewal sent',                   # UI name of this status
+            ui_method_name => 'Request Renewal',                   # UI name of method leading
+                                                           # to this status
+            method         => 'renewitem',                    # method to this status
+            next_actions   => [ 'H_RENEWITEM' ], # buttons to add to all
+                                                           # requests with this status
+            ui_method_icon => 'fa-inbox',                   # UI Style class
+        },
+        H_RENEWALREJECTED => {
+            prev_actions => [ 'H_RENEWITEM' ],                           # Actions containing buttons
+                                                           # leading to this status
+            id             => 'H_RENEWALREJECTED',                   # ID of this status
+            name           => 'Renewal rejected',                   # UI name of this status
+            ui_method_name => 'Renewal rejected',                   # UI name of method leading
+                                                           # to this status
+            method         => 'renewalrejectedok',                    # method to this status
+            next_actions   => [], # buttons to add to all
+                                                           # requests with this status
+            ui_method_icon => 'fa-check',                   # UI Style class
+        },
         H_RETURNED => {
             prev_actions => [ 'H_ITEMRECEIVED' ],                           # Actions containing buttons
                                                            # leading to this status
@@ -591,6 +615,59 @@ sub itemreceived {
 
 }
 
+=head2 renewitem
+
+Send RenewItem, NNCIPP call #9.
+
+=cut
+
+sub renewitem {
+
+    my ( $self, $params ) = @_;
+
+    my $nncipp = Koha::Illbackends::NNCIPP::NNCIPP->new();
+    my $resp = $nncipp->SendRenewItem({
+        'request' => $params->{request},
+    });
+
+    return {
+        error    => 0,
+        status   => '',
+        message  => '',
+        method   => 'renewitem',
+        stage    => 'commit',
+        next     => 'illview',
+        value    => '',
+    };
+
+}
+
+=head2 renewalrejectedok
+
+Acknowledge that a request for renewal was received. This should not generate
+any NCIP messages, just reset the status to H_ITEMRECEIVED.
+
+=cut
+
+sub renewalrejectedok {
+
+    my ( $self, $params ) = @_;
+
+    my $req = $params->{request};
+    $req->status( 'H_ITEMRECEIVED' )->store;
+
+    return {
+        error    => 0,
+        status   => '',
+        message  => '',
+        method   => 'renewalrejectedok',
+        stage    => 'commit',
+        next     => 'illview',
+        value    => '',
+    };
+
+}
+
 =head3 confirm
 
   my $response = $backend->confirm({
@@ -676,35 +753,35 @@ Illrequest.  $other may be supplied using templates.
 
 =cut
 
-sub renew {
-    # -> request a currently borrowed ILL be renewed in the backend
-    my ( $self, $params ) = @_;
-    # Turn Illrequestattributes into a plain hashref
-    my $value = {};
-    my $attributes = $params->{request}->illrequestattributes;
-    foreach my $attr (@{$attributes->as_list}) {
-        $value->{$attr->type} = $attr->value;
-    };
-    # Submit request to backend, parse response...
-    my ( $error, $status, $message ) = ( 0, '', '' );
-    if ( !$value->{status} || $value->{status} eq 'On order' ) {
-        $error = 1;
-        $status = 'not_renewed';
-        $message = 'Order not yet delivered.';
-    } else {
-        $value->{status} = "Renewed";
-    }
-    # ...then return our result:
-    return {
-        error   => $error,
-        status  => $status,
-        message => $message,
-        method  => 'renew',
-        stage   => 'commit',
-        value   => $value,
-        next    => 'illview',
-    };
-}
+#sub renew {
+#    # -> request a currently borrowed ILL be renewed in the backend
+#    my ( $self, $params ) = @_;
+#    # Turn Illrequestattributes into a plain hashref
+#    my $value = {};
+#    my $attributes = $params->{request}->illrequestattributes;
+#    foreach my $attr (@{$attributes->as_list}) {
+#        $value->{$attr->type} = $attr->value;
+#    };
+#    # Submit request to backend, parse response...
+#    my ( $error, $status, $message ) = ( 0, '', '' );
+#    if ( !$value->{status} || $value->{status} eq 'On order' ) {
+#        $error = 1;
+#        $status = 'not_renewed';
+#        $message = 'Order not yet delivered.';
+#    } else {
+#        $value->{status} = "Renewed";
+#    }
+#    # ...then return our result:
+#    return {
+#        error   => $error,
+#        status  => $status,
+#        message => $message,
+#        method  => 'renew',
+#        stage   => 'commit',
+#        value   => $value,
+#        next    => 'illview',
+#    };
+#}
 
 =head3 cancel
 
