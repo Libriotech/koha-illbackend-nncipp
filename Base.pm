@@ -271,11 +271,11 @@ sub status_graph {
             prev_actions => [ 'H_ITEMREQUESTED' ],                           # Actions containing buttons
                                                            # leading to this status
             id             => 'H_REQUESTITEM',                   # ID of this status
-            name           => 'Item requested',                   # UI name of this status
+            name           => 'Item requested from Owner Library',                   # UI name of this status
             ui_method_name => 'Request Item',                   # UI name of method leading
                                                            # to this status
             method         => 'requestitem',                    # method to this status
-            next_actions   => [ 'H_CANCELLED' ], # buttons to add to all
+            next_actions   => [ 'H_CANCELLED', 'H_ITEMRECEIVED' ], # buttons to add to all
                                                            # requests with this status
             ui_method_icon => 'fa-send-o',                   # UI Style class
         },
@@ -369,7 +369,7 @@ sub status_graph {
             prev_actions => [ 'O_ITEMREQUESTED' ],                           # Actions containing buttons
                                                            # leading to this status
             id             => 'O_REQUESTITEM',                   # ID of this status
-            name           => 'Request Item',                   # UI name of this status
+            name           => 'Item requested by Home Library',                   # UI name of this status
             ui_method_name => 'Request Item',                   # UI name of method leading
                                                            # to this status
             method         => 'requestitem',                    # method to this status
@@ -381,7 +381,7 @@ sub status_graph {
             prev_actions => [ 'O_REQUESTITEM' ],                           # Actions containing buttons
                                                            # leading to this status
             id             => 'O_ITEMSHIPPED',                   # ID of this status
-            name           => 'Item shipped',                   # UI name of this status
+            name           => 'Item shipped to Home Library',                   # UI name of this status
             ui_method_name => 'Ship item',                   # UI name of method leading
                                                            # to this status
             method         => 'itemshipped',                    # method to this status

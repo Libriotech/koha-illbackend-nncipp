@@ -130,6 +130,12 @@ sub SendItemRequested {
     return _send_message( 'ItemRequested', $xml->toString(1), $nncip_uri );
 }
 
+=head2 SendRequestItem
+
+Send a RequestItem. This is always from the Home Library to the Owner Library.
+
+=cut
+
 sub SendRequestItem {
     my ( $self, $args ) = @_;
     my $agency_bnum = $args->{borrowernumber}; # $args->{ordered_from_borrowernumber};
@@ -376,7 +382,7 @@ sub SendItemReceived {
         received_by => $received_by,
     );
 
-    my $nncip_uri = GetBorrowerAttributeValue($req->borrowernumber, 'nncip_uri') or die "nncip_uri missing for borrower: ".$other_library;
+    my $nncip_uri = GetBorrowerAttributeValue( $other_library, 'nncip_uri' ) or die "nncip_uri missing for borrower: ".$other_library;
     my $response = _send_message( 'ItemReceived', $xml->toString(1), $nncip_uri );
 
     # Check the response, change the status
