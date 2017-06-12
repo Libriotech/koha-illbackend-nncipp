@@ -161,6 +161,7 @@ sub SendRequestItem {
         item_id => $ItemIdentifierValue,
         request_type => $args->{RequestType},
         request_id => $args->{illrequest_id},
+        agency_id => "NO-".C4::Context->preference('ILLISIL'),
     );
 
     return _send_message( 'RequestItem', $xml->toString(), $nncip_uri);
@@ -203,14 +204,14 @@ sub SendCancelRequestItem {
         # 1. Cancellation by the Home Library (#10)
         $cancelled_by = 'CancelledBy.Borrower';
         $other_library = $req->illrequestattributes->find({ type => 'ordered_from_borrowernumber' })->value;
-        $agency_id = C4::Context->preference('ILLISIL');
+        $agency_id = 'NO-' . C4::Context->preference('ILLISIL');
         $request_id = $req->illrequest_id;
         $user_id = _borrowernumber2cardnumber( $req->borrowernumber );
     } elsif ( $req->status eq 'O_REQUESTITEM' ) {
         # 2. Cancellation by the Owner Library (#11)
         $cancelled_by = 'CancelledBy.Lender';
         $other_library = $patron->borrowernumber;
-        $agency_id = _borrowernumber2cardnumber( $patron->borrowernumber );
+        $agency_id = 'NO-' . _borrowernumber2cardnumber( $patron->borrowernumber );
         $request_id = $req->illrequestattributes->find({ type => 'RequestIdentifierValue' })->value,
         $user_id = $req->illrequestattributes->find({ type => 'UserIdentifierValue' })->value;
     }
@@ -279,7 +280,7 @@ sub SendItemShipped {
         $shipped_by = 'ShippedBy.Lender';
         $new_status = 'O_ITEMSHIPPED';
         $other_library = $patron->borrowernumber;
-        $agency_id = _borrowernumber2cardnumber( $patron->borrowernumber );
+        $agency_id = 'NO-' . _borrowernumber2cardnumber( $patron->borrowernumber );
         $request_id = $req->illrequestattributes->find({ type => 'RequestIdentifierValue' })->value,
         $user_id = $req->illrequestattributes->find({ type => 'UserIdentifierValue' })->value;
         # FIXME We need to register a loan/issue, so we can renew it later
@@ -288,7 +289,7 @@ sub SendItemShipped {
         $shipped_by = 'ShippedBy.Borrower';
         $new_status = 'H_RETURNED';
         $other_library = $req->illrequestattributes->find({ type => 'ordered_from_borrowernumber' })->value;
-        $agency_id = C4::Context->preference('ILLISIL');
+        $agency_id = 'NO-' . C4::Context->preference('ILLISIL');
         $request_id = $req->illrequest_id;
         $user_id = _borrowernumber2cardnumber( $req->borrowernumber );
     }
@@ -362,14 +363,14 @@ sub SendItemReceived {
         $received_by = 'ReceivedBy.Borrower';
         $new_status = 'H_ITEMRECEIVED';
         $other_library = $req->illrequestattributes->find({ type => 'ordered_from_borrowernumber' })->value;
-        $agency_id = C4::Context->preference('ILLISIL');
+        $agency_id = 'NO-' . C4::Context->preference('ILLISIL');
         $request_id = $req->illrequest_id;
     } elsif ( $req->status eq 'O_RETURNED' ) {
         # 2. Owner has received from Home
         $received_by = 'ReceivedBy.Lender';
         $new_status = 'DONE';
         $other_library = $patron->borrowernumber;
-        $agency_id = $req->illrequestattributes->find({ type => 'AgencyId' })->value,
+        $agency_id = 'NO-' . $req->illrequestattributes->find({ type => 'AgencyId' })->value,
         $request_id = $req->illrequestattributes->find({ type => 'RequestIdentifierValue' })->value,
         # FIXME We need to mark the loan/issue as returned
     }

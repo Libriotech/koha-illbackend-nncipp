@@ -147,7 +147,7 @@ sub RequestItem {
             #@itemId,
             RequestId => [
                 # The initializing AgencyId must be part of the RequestId -->
-                AgencyId => $required->('from_agency'),
+                AgencyId => $required->('agency_id'),
                 # The RequestIdentifierValue must be part of the RequestId-->
                 RequestIdentifierValue => $required->('request_id'),
             ],
@@ -288,6 +288,12 @@ sub ItemReceived {
         ],
     );
 }
+
+=head2 RenewItem
+
+Builds an RenewItem XML message.
+
+=cut
 
 sub RenewItem {
     my ($self, %args) = @_;
