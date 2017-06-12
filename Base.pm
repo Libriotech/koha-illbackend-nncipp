@@ -505,7 +505,7 @@ sub create {
     # Update the saved request with the orderid that we thereby create 
     my $orderid;
     if ( $request->status eq 'H_ITEMREQUESTED' ) {
-        $orderid = C4::Context->preference('ILLISIL') . ':' . $request->illrequest_id;
+        $orderid = 'NO-' . C4::Context->preference('ILLISIL') . ':' . $request->illrequest_id;
     } elsif ( $request->status eq 'O_REQUESTITEM' )  {
         my $agencyid = $request->illrequestattributes->find({ type => 'AgencyId' })->value;
         $orderid = $agencyid . ':' . $request->illrequestattributes->find({ type => 'RequestIdentifierValue' })->value;
