@@ -206,7 +206,7 @@ sub SendCancelRequestItem {
         $agency_id = C4::Context->preference('ILLISIL');
         $request_id = $req->illrequest_id;
         $user_id = _borrowernumber2cardnumber( $req->borrowernumber );
-    } elsif ( $req->status eq 'H_ITEMRECEIVED' ) {
+    } elsif ( $req->status eq 'O_REQUESTITEM' ) {
         # 2. Cancellation by the Owner Library (#11)
         $cancelled_by = 'CancelledBy.Lender';
         $other_library = $patron->borrowernumber;
@@ -227,8 +227,8 @@ sub SendCancelRequestItem {
         cancelled_by => $cancelled_by,
     );
 
-    my $nncip_uri = GetBorrowerAttributeValue($req->borrowernumber, 'nncip_uri') or die "nncip_uri missing for borrower: ".$other_library;
-    my $response = _send_message( 'ItemReceived', $xml->toString(1), $nncip_uri );
+    my $nncip_uri = GetBorrowerAttributeValue( $other_library, 'nncip_uri' ) or die "nncip_uri missing for borrower: ".$other_library;
+    my $response = _send_message( 'CancelRequestItem', $xml->toString(1), $nncip_uri );
 
     # Check the response, change the status
     if ( $response->{'success'} == 1 && $response->{'problem'} == 0 ) {
