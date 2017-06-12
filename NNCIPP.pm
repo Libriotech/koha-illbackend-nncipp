@@ -293,7 +293,7 @@ sub SendItemShipped {
         $request_id = $req->illrequest_id;
         $user_id = _borrowernumber2cardnumber( $req->borrowernumber );
     } else {
-        die "wront status: ".$req->status;
+        die "wrong status: ".$req->status;
     }
 
     my $xml = $self->{XML}->ItemShipped(
