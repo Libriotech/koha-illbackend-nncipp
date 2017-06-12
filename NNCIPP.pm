@@ -292,6 +292,8 @@ sub SendItemShipped {
         $agency_id = 'NO-' . C4::Context->preference('ILLISIL');
         $request_id = $req->illrequest_id;
         $user_id = _borrowernumber2cardnumber( $req->borrowernumber );
+    } else {
+        die "wront status: ".$req->status;
     }
 
     my $xml = $self->{XML}->ItemShipped(
