@@ -370,7 +370,7 @@ sub SendItemReceived {
         $received_by = 'ReceivedBy.Lender';
         $new_status = 'DONE';
         $other_library = $patron->borrowernumber;
-        $agency_id = 'NO-' . $req->illrequestattributes->find({ type => 'AgencyId' })->value,
+        $agency_id = $req->illrequestattributes->find({ type => 'AgencyId' })->value,
         $request_id = $req->illrequestattributes->find({ type => 'RequestIdentifierValue' })->value,
         # FIXME We need to mark the loan/issue as returned
     }
