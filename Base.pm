@@ -405,7 +405,7 @@ sub status_graph {
             prev_actions => [ 'O_ITEMRECEIVED' ],                           # Actions containing buttons
                                                            # leading to this status
             id             => 'O_RETURNED',                   # ID of this status
-            name           => 'Item received from ',                   # UI name of this status
+            name           => 'Item returned from Home Library',                   # UI name of this status
             ui_method_name => 'Return item',                   # UI name of method leading
                                                            # to this status
             method         => 'itemreceived',                    # method to this status
