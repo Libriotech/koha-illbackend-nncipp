@@ -282,6 +282,7 @@ sub SendItemShipped {
         $agency_id = _borrowernumber2cardnumber( $patron->borrowernumber );
         $request_id = $req->illrequestattributes->find({ type => 'RequestIdentifierValue' })->value,
         $user_id = $req->illrequestattributes->find({ type => 'UserIdentifierValue' })->value;
+        # FIXME We need to register a loan/issue, so we can renew it later
     } elsif ( $req->status eq 'H_ITEMRECEIVED' ) {
         # 2. Home sends to Owner
         $shipped_by = 'ShippedBy.Borrower';
@@ -370,6 +371,7 @@ sub SendItemReceived {
         $other_library = $patron->borrowernumber;
         $agency_id = $req->illrequestattributes->find({ type => 'AgencyId' })->value,
         $request_id = $req->illrequestattributes->find({ type => 'RequestIdentifierValue' })->value,
+        # FIXME We need to mark the loan/issue as returned
     }
 
     my $xml = $self->{XML}->ItemReceived(
