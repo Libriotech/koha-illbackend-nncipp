@@ -508,7 +508,6 @@ sub create {
         $orderid = C4::Context->preference('ILLISIL') . ':' . $request->illrequest_id;
     } elsif ( $request->status eq 'O_REQUESTITEM' )  {
         my $agencyid = $request->illrequestattributes->find({ type => 'AgencyId' })->value;
-        $agencyid =~ s/^no-//i;
         $orderid = $agencyid . ':' . $request->illrequestattributes->find({ type => 'RequestIdentifierValue' })->value;
     }
     $request->orderid( $orderid )->store;
