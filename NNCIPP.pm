@@ -348,6 +348,7 @@ sub SendItemReceived {
     my ( $self, $params ) = @_;
 
     my $req = $params->{request};
+    my $patron = $req->patron;
 
     # Set up the values that differ for the two scenarios described in the POD
     my $received_by;
@@ -366,7 +367,7 @@ sub SendItemReceived {
         # 2. Owner has received from Home
         $received_by = 'ReceivedBy.Lender';
         $new_status = 'DONE';
-        $other_library = $params->{borrowernumber};
+        $other_library = $patron->borrowernumber;
         $agency_id = $req->illrequestattributes->find({ type => 'AgencyId' })->value,
         $request_id = $req->illrequestattributes->find({ type => 'RequestIdentifierValue' })->value,
     }
