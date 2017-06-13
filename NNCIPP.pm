@@ -390,8 +390,8 @@ sub SendItemReceived {
         $received_by = 'ReceivedBy.Lender';
         $new_status = 'DONE';
         $other_library = $patron->borrowernumber;
-        $agency_id = $req->illrequestattributes->find({ type => 'AgencyId' })->value,
-        $request_id = $req->illrequestattributes->find({ type => 'RequestIdentifierValue' })->value,
+        $agency_id = $req->illrequestattributes->find({ type => 'AgencyId' })->value;
+        $request_id = $req->illrequestattributes->find({ type => 'RequestIdentifierValue' })->value;
         # Mark the loan/issue as returned
         if ( $req->illrequestattributes->find({ type => 'ItemIdentifierType' })->value eq 'Barcode' && $req->illrequestattributes->find({ type => 'ItemIdentifierValue' })->value ) {
             my $barcode = $req->illrequestattributes->find({ type => 'ItemIdentifierValue' })->value;
