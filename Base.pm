@@ -311,7 +311,7 @@ sub status_graph {
             ui_method_name => 'Receive item',                   # UI name of method leading
                                                            # to this status
             method         => 'itemreceived',                    # method to this status
-            next_actions   => [ 'KILL', 'H_RETURNED' ], # buttons to add to all
+            next_actions   => [ 'KILL', 'H_RETURNED', 'H_RENEWITEM' ], # buttons to add to all
                                                            # requests with this status
             ui_method_icon => 'fa-inbox',                   # UI Style class
         },
@@ -373,9 +373,21 @@ sub status_graph {
             ui_method_name => 'Request Item',                   # UI name of method leading
                                                            # to this status
             method         => 'requestitem',                    # method to this status
-            next_actions   => [ 'KILL', 'O_ITEMSHIPPED' ], # buttons to add to all
+            next_actions   => [ 'KILL', 'O_CANCELLED', 'O_ITEMSHIPPED' ], # buttons to add to all
                                                            # requests with this status
             ui_method_icon => 'fa-send-o',                   # UI Style class
+        },
+        O_CANCELLED => { # Dummy status
+            prev_actions => [ 'O_REQUESTITEM' ],                           # Actions containing buttons
+                                                           # leading to this status
+            id             => 'H_CANCELLED',                   # ID of this status
+            name           => 'Cancelled',                   # UI name of this status
+            ui_method_name => 'Cancel',                   # UI name of method leading
+                                                           # to this status
+            method         => 'cancelrequestitem',                    # method to this status
+            next_actions   => [  ], # buttons to add to all
+                                                           # requests with this status
+            ui_method_icon => 'fa-times',                   # UI Style class
         },
         O_ITEMSHIPPED => {
             prev_actions => [ 'O_REQUESTITEM' ],                           # Actions containing buttons

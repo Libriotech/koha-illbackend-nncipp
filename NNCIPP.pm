@@ -442,7 +442,7 @@ sub SendRenewItem {
         itemidentifiervalue => $req->illrequestattributes->find({ type => 'ItemIdentifierValue' })->value,
     );
 
-    my $nncip_uri = GetBorrowerAttributeValue( $req->borrowernumber, 'nncip_uri' ) or die "nncip_uri missing for borrower: ".$req->borrowernumber;
+    my $nncip_uri = GetBorrowerAttributeValue( $req->illrequestattributes->find({ type => 'ordered_from_borrowernumber' })->value, 'nncip_uri' ) or die "nncip_uri missing for borrower: ".$req->borrowernumber;
     my $response = _send_message( 'RenewItem', $xml->toString(1), $nncip_uri );
     $req->status( 'H_RENEWITEM' )->store;
 
