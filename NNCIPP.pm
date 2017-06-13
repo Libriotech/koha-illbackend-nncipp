@@ -20,7 +20,7 @@ package Koha::Illbackends::NNCIPP::NNCIPP;
 use Koha::Illbackends::NNCIPP::XML;
 
 use C4::Biblio;
-use C4::Circulation qw( AddIssue CanBookBeIssued );
+use C4::Circulation qw( AddIssue CanBookBeIssued AddReturn );
 use C4::Items;
 use C4::Log;
 use C4::Members;
@@ -379,20 +379,31 @@ sub SendItemReceived {
     my $agency_id;
     my $request_id;
     if ( $req->status eq 'H_ITEMSHIPPED' ) {
-        # 1. Home has received from Owner
+        # 1. Home has received from Owner (#5)
         $received_by = 'ReceivedBy.Borrower';
         $new_status = 'H_ITEMRECEIVED';
         $other_library = $req->illrequestattributes->find({ type => 'ordered_from_borrowernumber' })->value;
         $agency_id = 'NO-' . C4::Context->preference('ILLISIL');
         $request_id = $req->illrequest_id;
     } elsif ( $req->status eq 'O_RETURNED' ) {
-        # 2. Owner has received from Home
+        # 2. Owner has received from Home (#7)
         $received_by = 'ReceivedBy.Lender';
         $new_status = 'DONE';
         $other_library = $patron->borrowernumber;
         $agency_id = $req->illrequestattributes->find({ type => 'AgencyId' })->value,
         $request_id = $req->illrequestattributes->find({ type => 'RequestIdentifierValue' })->value,
-        # FIXME We need to mark the loan/issue as returned
+        # Mark the loan/issue as returned
+        if ( $req->illrequestattributes->find({ type => 'ItemIdentifierType' })->value eq 'Barcode' && $req->illrequestattributes->find({ type => 'ItemIdentifierValue' })->value ) {
+            my $barcode = $req->illrequestattributes->find({ type => 'ItemIdentifierValue' })->value;
+            # FIXME Branch (second argument of AddReturn) is hardcoded to ILL, for now. Should probably be the branch of the logged in user? 
+            my ($doreturn, $messages, $iteminformation, $borrower) = AddReturn( $barcode, 'ILL' );
+            warn 'doreturn: ' . $doreturn;
+            warn Dumper $messages;
+            warn 'iteminformation.barcode: ' . $iteminformation->{'barcode'};
+            warn 'borrower.borrowernumber: ' . $borrower->{'borrowernumber'};
+        } else {
+            # FIXME Handle other identifiers
+        }
     }
 
     my $xml = $self->{XML}->ItemReceived(
