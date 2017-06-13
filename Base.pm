@@ -311,7 +311,7 @@ sub status_graph {
             ui_method_name => 'Receive item',                   # UI name of method leading
                                                            # to this status
             method         => 'itemreceived',                    # method to this status
-            next_actions   => [ 'KILL', 'H_RETURNED' ], # buttons to add to all
+            next_actions   => [ 'KILL', 'H_RETURNED', 'H_RENEWITEM' ], # buttons to add to all
                                                            # requests with this status
             ui_method_icon => 'fa-inbox',                   # UI Style class
         },
