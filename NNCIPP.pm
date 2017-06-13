@@ -20,6 +20,7 @@ package Koha::Illbackends::NNCIPP::NNCIPP;
 use Koha::Illbackends::NNCIPP::XML;
 
 use C4::Biblio;
+use C4::Circulation qw( AddIssue );
 use C4::Items;
 use C4::Log;
 use C4::Members;
@@ -284,10 +285,17 @@ sub SendItemShipped {
         $request_id = $req->illrequestattributes->find({ type => 'RequestIdentifierValue' })->value,
         $user_id = $req->illrequestattributes->find({ type => 'UserIdentifierValue' })->value;
         # Add a loan/issue, so we can keep track of it and renew it later
+        warn "ItemIdentifierType:  " . $req->illrequestattributes->find({ type => 'ItemIdentifierType' })->value;
+        warn "ItemIdentifierValue: " . $req->illrequestattributes->find({ type => 'ItemIdentifierValue' })->value;
         if ( $req->illrequestattributes->find({ type => 'ItemIdentifierType' })->value eq 'Barcode' && $req->illrequestattributes->find({ type => 'ItemIdentifierValue' })->value ) {
             my $barcode = $req->illrequestattributes->find({ type => 'ItemIdentifierValue' })->value;
             my $issue = AddIssue( $patron, $barcode );
-            say Dumper $issue; # FIXME Debug
+            warn Dumper $issue; # FIXME Debug
+        } else {
+            warn "NO ISSUE MADE";
+            warn "ItemIdentifierType:  " . $req->illrequestattributes->find({ type => 'ItemIdentifierType' })->value;
+            warn "ItemIdentifierValue: " . $req->illrequestattributes->find({ type => 'ItemIdentifierValue' })->value;
+            warn Debug $patron;
         }
     } elsif ( $req->status eq 'H_ITEMRECEIVED' ) {
         # 2. Home sends to Owner
