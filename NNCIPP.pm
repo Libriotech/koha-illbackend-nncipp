@@ -283,7 +283,12 @@ sub SendItemShipped {
         $agency_id = 'NO-' . _borrowernumber2cardnumber( $patron->borrowernumber );
         $request_id = $req->illrequestattributes->find({ type => 'RequestIdentifierValue' })->value,
         $user_id = $req->illrequestattributes->find({ type => 'UserIdentifierValue' })->value;
-        # FIXME We need to register a loan/issue, so we can renew it later
+        # Add a loan/issue, so we can keep track of it and renew it later
+        if ( $req->illrequestattributes->find({ type => 'ItemIdentifierType' })->value eq 'Barcode' && $req->illrequestattributes->find({ type => 'ItemIdentifierValue' })->value ) {
+            my $barcode = $req->illrequestattributes->find({ type => 'ItemIdentifierValue' })->value;
+            my $issue = AddIssue( $patron, $barcode );
+            say Dumper $issue; # FIXME Debug
+        }
     } elsif ( $req->status eq 'H_ITEMRECEIVED' ) {
         # 2. Home sends to Owner
         $shipped_by = 'ShippedBy.Borrower';
