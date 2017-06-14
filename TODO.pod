@@ -1,0 +1,13 @@
+=pod
+
+=head1 TODO
+
+Fix all the FIXMEs and TODOs.
+
+Place a hold at the Owner Library when a RequestItem is received.
+
+Place a hold at the Home Library when sending ItemReceived.
+
+Trigger an ItemShipped (#6) when a regular check in is done on an ILL loan in Koha.
+
+=cut
