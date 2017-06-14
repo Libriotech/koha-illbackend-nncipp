@@ -335,7 +335,7 @@ sub status_graph {
             ui_method_name => 'Renewal rejected',                   # UI name of method leading
                                                            # to this status
             method         => 'renewalrejectedok',                    # method to this status
-            next_actions   => [], # buttons to add to all
+            next_actions   => ['KILL','H_RETURNED'], # buttons to add to all
                                                            # requests with this status
             ui_method_icon => 'fa-check',                   # UI Style class
         },

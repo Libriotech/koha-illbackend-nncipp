@@ -302,7 +302,7 @@ sub SendItemShipped {
             warn "ItemIdentifierType:  " . $req->illrequestattributes->find({ type => 'ItemIdentifierType' })->value;
             warn "ItemIdentifierValue: " . $req->illrequestattributes->find({ type => 'ItemIdentifierValue' })->value;
         }
-    } elsif ( $req->status eq 'H_ITEMRECEIVED' ) {
+    } elsif ( $req->status =~ m{^(H_ITEMRECEIVED|H_RENEWALREJECTED)$} ) {
         # 2. Home sends to Owner
         $shipped_by = 'ShippedBy.Borrower';
         $new_status = 'H_RETURNED';
