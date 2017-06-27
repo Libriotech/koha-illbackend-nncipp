@@ -4,9 +4,9 @@
 
 Fix all the FIXMEs and TODOs.
 
-Place a hold at the Owner Library when a RequestItem is received.
-
-Place a hold at the Home Library when sending ItemReceived.
+Place a hold at the Owner Library when a RequestItem is received. DONE
+ 
+Place a hold at the Home Library when sending ItemReceived. DONE
 
 Trigger an ItemShipped (#6) when a regular check in is done on an ILL loan in Koha.
 
