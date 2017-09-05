@@ -88,10 +88,11 @@ Arguments:
 =cut
 
 sub SendItemRequested {
-    my ( $self, $biblionumber, $borrower, $userid ) = @_;
+    my ( $self, $biblionumber, $borrower, $userid, $request_type ) = @_;
 
     $biblionumber or die "you must specify a biblionumber";
     $borrower or die "you must specify a borrower";
+    $request_type = 'Physical' unless $request_type;
 
     my $borrowernumber = $borrower->borrowernumber or die "no borrowernumber";
     my $nncip_uri = GetBorrowerAttributeValue( $borrowernumber, 'nncip_uri' ) or die "no nncip_uri for '$borrowernumber'";
@@ -117,7 +118,7 @@ sub SendItemRequested {
         from_agency => "NO-".C4::Context->preference('ILLISIL'),
         userid => $userid,
         barcode => $barcode,
-        request_type => "Physical",
+        request_type => $request_type,
         bibliographic_description => {
             Author => $bibliodata->{author},
             PlaceOfPublication => $bibliodata->{place},

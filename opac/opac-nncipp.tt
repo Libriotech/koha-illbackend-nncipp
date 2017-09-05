@@ -71,15 +71,33 @@
                 [% END %]
 
                 [% IF !op %]
-                    <p><cite>[% biblio.title %]</cite> by [% biblio.author %]</p>
+                    <p><cite><a href="/cgi-bin/koha/opac-detail.pl?biblionumber=[% biblio.biblionumber %]">[% biblio.title %]</a></cite>[% IF biblio.author %] by [% biblio.author %][% END %]</p>
                     <form method="POST" action"/cgi-bin/koha/opac-nncipp.pl">
-                        <input type="hidden" name="op" value="order"/>
-                        <input type="hidden" name="biblionumber" value="[% biblionumber %]"/>
-                        <label for="userid">Order on behalf of patron:</label>
-                        <input type="text" name="userid" id="userid" placeholder="NLR-ID"/>
-                        <div>
+                        <fieldset class="rows" id="nncipp">
+                            <legend id="nncipp_legend">NNCIPP</legend>
+                            <ol>
+                                <li>
+                                    <label for="userid">Order on behalf of patron:</label>
+                                    <input type="text" name="userid" id="userid" placeholder="NLR-ID"/>
+                                </li>
+                                <li>
+                                    <label for="request_type">Request type:</label>
+                                    <select name="request_type" id="request_type">
+                                        <option>Physical</option>
+                                        <option>Non-Returnable</option>
+                                        <option>PhysicalNoReservation</option>
+                                        <option>LII</option>
+                                        <option>LIINoReservation</option>
+                                        <option>Depot</option>
+                                    </select>
+                                </li>
+                            </ol>
+                        </fieldset>
+                        <fieldset class="action">
+                            <input type="hidden" name="op" value="order"/>
+                            <input type="hidden" name="biblionumber" value="[% biblionumber %]"/>
                             <input type="submit" value="Order" class="btn"/> | <a href="/cgi-bin/koha/opac-detail.pl?biblionumber=[% biblionumber %]">Cancel</a>
-                        </div>
+                        </fieldset>
                     </form>
                 [% END %]
 

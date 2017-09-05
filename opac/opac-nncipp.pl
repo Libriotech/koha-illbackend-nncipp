@@ -44,16 +44,17 @@ my ( $template, $borrowernumber, $cookie ) = get_template_and_user(
     }
 );
 
-my $message       = '';
-my $query         = $cgi->param('query_value');
-my $here          = "/cgi-bin/koha/opac-nncipp.pl";
-my $op            = $cgi->param('op');
-my $biblionumber  = $cgi->param('biblionumber');
-my $userid        = $cgi->param('userid');
+my $message      = '';
+my $query        = $cgi->param('query_value');
+my $here         = "/cgi-bin/koha/opac-nncipp.pl";
+my $op           = $cgi->param('op');
+my $biblionumber = $cgi->param('biblionumber');
+my $userid       = $cgi->param('userid');
+my $request_type = $cgi->param('request_type');
 
 # Find the logged in user (a library)
-my $borrower = Koha::Patrons->new->find( $borrowernumber )
-    || die "You're logged in as the database user. We don't support that.";
+my $borrower = Koha::Patrons->new->find( $borrowernumber );
+#     || die "You're logged in as the database user. We don't support that.";
 
 # Default: Display "Order | Cancel" links for the given biblionumber
 
@@ -77,7 +78,7 @@ if ( $op eq 'order' && $biblionumber ne '' ) {
     # Notify the users home library that this request was made
     # NNCIPP: Use case #3. Call #8.
     my $ncip = Koha::Illbackends::NNCIPP::NNCIPP->new;
-    my $ncip_response = $ncip->SendItemRequested( $biblionumber, $borrower, $userid );
+    my $ncip_response = $ncip->SendItemRequested( $biblionumber, $borrower, $userid, $request_type );
 
     $template->param(
         query_value   => $query,
