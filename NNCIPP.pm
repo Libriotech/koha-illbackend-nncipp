@@ -323,7 +323,7 @@ sub SendItemShipped {
         itemidentifiertype => $req->illrequestattributes->find({ type => 'ItemIdentifierType' })->value,
         itemidentifiervalue => $req->illrequestattributes->find({ type => 'ItemIdentifierValue' })->value,
         userid => $user_id,
-        date_shipped => '2017-05-15', # FIXME Use date and time now
+        date_shipped => _get_datetime(),
         address => { # FIXME
             street => 'Narrowgata',
             city => 'Townia',
@@ -414,7 +414,7 @@ sub SendItemReceived {
         request_id => $request_id,
         itemidentifiertype => $req->illrequestattributes->find({ type => 'ItemIdentifierType' })->value,
         itemidentifiervalue => $req->illrequestattributes->find({ type => 'ItemIdentifierValue' })->value,
-        date_received => '2017-05-15', # FIXME Use date and time now
+        date_received => _get_datetime(),
         received_by => $received_by,
     );
 
@@ -579,6 +579,19 @@ sub _get_langcode_from_bibliodata {
         $lang_code = substr $f008, 35, 3;
     }
     return $lang_code;
+
+}
+
+=head2 _get_datetime()
+
+Returns the current date and time, formatted like '2017-09-07T10:32:33'.
+
+=cut
+
+sub _get_datetime() {
+
+    my $dt = DateTime->now;
+    return $dt->datetime;
 
 }
 
