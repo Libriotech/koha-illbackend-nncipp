@@ -283,6 +283,7 @@ sub SendItemShipped {
     my $agency_id;
     my $request_id;
     my $user_id;
+    my $recipient;
     if ( $req->status eq 'O_REQUESTITEM' ) {
         # 1. Owner sends to Home
         $shipped_by = 'ShippedBy.Lender';
@@ -295,9 +296,10 @@ sub SendItemShipped {
         if ( $req->illrequestattributes->find({ type => 'ItemIdentifierType' })->value eq 'Barcode' && $req->illrequestattributes->find({ type => 'ItemIdentifierValue' })->value ) {
             # Get the data we need
             my $borrower = GetMember( borrowernumber => $patron->borrowernumber );
+            $recipient = $borrower;
             my $barcode = $req->illrequestattributes->find({ type => 'ItemIdentifierValue' })->value;
             # Check if the book can be issued
-            # FIXME For now we put this in a warn, we should use it for something clever
+            # TODO For now we put this in a warn, we should use it for something clever
             my ( $issuingimpossible, $needsconfirmation ) =  CanBookBeIssued( $borrower, $barcode );
             warn "issuingimpossible: " . Dumper $issuingimpossible;
             warn "needsconfirmation: " . Dumper $needsconfirmation;
@@ -314,6 +316,7 @@ sub SendItemShipped {
         $shipped_by = 'ShippedBy.Borrower';
         $new_status = 'H_RETURNED';
         $other_library = $req->illrequestattributes->find({ type => 'ordered_from_borrowernumber' })->value;
+        $recipient = GetMember( borrowernumber => $other_library );
         $agency_id = 'NO-' . C4::Context->preference('ILLISIL');
         $request_id = $req->illrequest_id;
         $user_id = _borrowernumber2cardnumber( $req->borrowernumber );
@@ -330,11 +333,11 @@ sub SendItemShipped {
         itemidentifiervalue => $req->illrequestattributes->find({ type => 'ItemIdentifierValue' })->value,
         userid => $user_id,
         date_shipped => _get_datetime(),
-        address => { # FIXME
-            street => 'Narrowgata',
-            city => 'Townia',
-            country => 'Norway',
-            zipcode => '0123',
+        address => {
+            street =>  $recipient->{'address'},
+            city =>    $recipient->{'city'},
+            country => $recipient->{'country'},
+            zipcode => $recipient->{'zipcode'},
         },
         # PhysicalAddressType => [], # TODO ??? why an empty tag?
         # bibliographic_description # FIXME "If an alternative Item is shipped to fulfill a loan"

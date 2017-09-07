@@ -403,7 +403,7 @@ sub create {
         };
     }
     my $request = $params->{request};
-    my $borrowernumber = $params->{other}->{borrowernumber}; # FIXME Check that we have a valid borrowernumber
+    my $borrowernumber = $params->{other}->{borrowernumber}; # TODO Check that we have a valid borrowernumber
     $request->borrowernumber($borrowernumber);
     $request->biblio_id($params->{other}->{biblionumber});
 
