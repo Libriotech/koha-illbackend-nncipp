@@ -146,16 +146,12 @@ sub metadata {
         return {
             Title => $title,
             Author => $author,
-            OrderFrom => '-', # FIXME
         };
     }
 
     my %map = (
-        # ID => 'id',
         Title => 'title',
         Author => 'author',
-        # Status => 'status',
-        OrderFrom => 'order_from',
     );
 
     my %attr;
