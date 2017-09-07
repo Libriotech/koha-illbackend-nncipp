@@ -132,7 +132,7 @@ sub SendItemRequested {
             Publisher => $bibliodata->{publishercode},
             Title => $bibliodata->{title},
             Language => $lang_code,
-            MediumType => $config->{ itemtype2materialtype }->{ $bibliodata->{itemtype} },
+            MediumType => $nncipp_config->{ itemtype2materialtype }->{ $bibliodata->{itemtype} },
         },
     );
     return _send_message( 'ItemRequested', $xml->toString(1), $nncip_uri );
