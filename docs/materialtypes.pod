@@ -1,0 +1,116 @@
+=pod
+
+=head1 Medium Type
+
+The following definitions have been taken verbatim from:
+
+ ANSI/NISO Z39.83-2-2012
+ ISSN: 1041-5653
+ NISO Circulation Interchange Protocol (NCIP)
+ Part 2: Implementation Profile 1
+ Version 2.02
+
+=head1 Mapping
+
+The Medium types described in this document need to be included in bibliographic
+descriptions. To do this, we need to create a mapping from itemtypes in Koha to
+these Medium Types. 
+
+1. Create a "local use" syspref in Koha, called nncipp_config
+
+2. Create a YAML mapping in the syspref, something like this:
+
+ itemtype2materialtype:
+   BK: "Book"
+   CR: "Magazine"
+
+=head1 Medium types
+
+=head2 Audio Tape 
+
+Item is a tape on which sound vibrations have been
+registered so that the sound may be reproduced.
+Source: 3M SIP, media type CK004
+
+=head2 Blu-ray
+
+Item is a Blu-ray Disc (BD) on which visual images,
+usually in motion and accompanied by sound, have been
+recorded.
+Source: Blu-ray Disc Association, What is Blu-ray?
+
+=head2 Book
+
+Item is text, eye-readable, printed, and complete in one
+part or intended to be completed in a finite number of
+separate parts.
+Source: 3M SIP, media type CK001
+
+=head2 Book With Audio Tape
+
+Item is a kit comprising a book and an audiotape.
+Source: 3M SIP, media type CK010
+
+=head2 Book With Compact Disc
+
+Item is a kit comprising a book and a compact disc.
+Source: 3M SIP, media type CK009
+
+=head2 Book With Diskette
+
+Item is a kit comprising a book and a diskette.
+Source: 3M SIP, media type CK008
+
+=head2 Bound Journal
+
+Item is text, eye-readable, printed, and with successive
+parts bearing numerical or chronological designations
+bound together.
+Source: 3M SIP, media type CK003
+
+=head2 CD-ROM
+
+Item is computer file recorded on a compact disc with
+read-only memory (ROM) on which digitized machine-
+readable data or program code has been registered; this
+data is intended to be accessed, processed, or executed
+by computer.
+Source: 3M SIP, media type CK006
+
+=head2 Compact Disc (CD)
+
+Item is a compact disc on which sound vibrations have
+been registered so that the sound may be reproduced.
+Source: 3M SIP, media type CK006
+23ANSI/NISO Z39.83-2-2012 Version 2.02
+
+=head2 Diskette
+
+Item is a computer file recorded on a diskette; this data is
+intended to be accessed, processed, or executed by
+computer.
+Source: 3M SIP, media type CK007
+
+=head2 DVD
+
+Item is a digital video disc (DVD) on which visual images
+or digitized machine-readable data or program code has
+been recorded.
+
+=head2 Magazine
+
+Item is text, eye-readable, printed, bearing numerical or
+chronological designations, and is one of successive parts
+intended to be continued indefinitely.
+Source: 3M SIP, media type CK002
+
+=head2 Microform
+
+Item is in a medium such as microfilm, microfiche, etc.
+Video Tape Item is a tape on which visual images, usually in motion
+and accompanied by sound, have been registered, and
+which are designed for playback on a television receiver
+or video monitor.
+Source: 3M SIP, media type CK005
+
+=cut
