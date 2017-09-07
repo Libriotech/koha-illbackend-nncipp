@@ -21,6 +21,7 @@ use Koha::Illbackends::NNCIPP::XML;
 
 use C4::Biblio;
 use C4::Circulation qw( AddIssue CanBookBeIssued AddReturn );
+use C4::Context;
 use C4::Items;
 use C4::Log;
 use C4::Members;
@@ -30,6 +31,7 @@ use Data::Dumper; # FIXME Debug
 use Carp;
 use HTTP::Tiny;
 use XML::Simple;
+use YAML::Syck;
 
 use Modern::Perl;
 
@@ -113,6 +115,10 @@ sub SendItemRequested {
     # Pick out the language code from 008, position 35-37
     my $lang_code = _get_langcode_from_bibliodata( $biblionumber );
 
+    # Get the mapping from a YAML formatted syspref. See docs/materialtypes.pod
+    # for further details.
+    my $nncipp_config = Load( C4::Context->preference("nncipp_config") );
+
     my $xml = $self->{XML}->ItemRequested(
         to_agency => "NO-".$borrower->cardnumber,
         from_agency => "NO-".C4::Context->preference('ILLISIL'),
@@ -126,7 +132,7 @@ sub SendItemRequested {
             Publisher => $bibliodata->{publishercode},
             Title => $bibliodata->{title},
             Language => $lang_code,
-            MediumType => "Book", # TODO map from $bibliodata->{itemtype}
+            MediumType => $config->{ itemtype2materialtype }->{ $bibliodata->{itemtype} },
         },
     );
     return _send_message( 'ItemRequested', $xml->toString(1), $nncip_uri );

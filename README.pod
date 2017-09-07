@@ -43,4 +43,8 @@ To see the NNCIPP ILL form for that record you must change the URL to this:
 
  <opac>/cgi-bin/koha/opac-nncipp.pl?biblionumber=5
 
+=head2 Configuration
+
+See docs/materialtypes.pod for how to create a mapping for itemtypes.
+
 =cut
