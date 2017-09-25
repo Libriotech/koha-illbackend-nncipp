@@ -155,6 +155,7 @@ sub SendRequestItem {
         'issn'    => 'ISSN',
         'ean'     => 'EAN',
         'rfid'    => 'RFID',
+        'ownerlocalrecordid' => 'OwnerLocalRecordID',
     );
 
     # Construct ItemIdentifierType and ItemIdentifierValue

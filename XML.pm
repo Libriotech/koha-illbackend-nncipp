@@ -140,6 +140,15 @@ sub RequestItem {
                         ItemIdentifierType => $required->('item_type'),
                         ItemIdentifierValue => $required->('item_id'),
                     ];
+                } elsif ($required->('item_type') =~ m{^(OwnerLocalRecordID)$} ) {
+                    # All Items must have a scannable Id either a RFID or a Barcode or Both. -->
+                    # In the case of both, start with the Barcode, use colon and no spaces as delimitor.-->
+                    return BibliographicId => [
+                        BibliographicRecordId => [
+                            BibliographicRecordIdentifierCode => $required->('item_type'),
+                            BibliographicRecordIdentifier => $required->('item_id'),
+                        ],
+                    ];
                 } else {
                     die "invalid item_type: '$args{item_type}'";
                 }
