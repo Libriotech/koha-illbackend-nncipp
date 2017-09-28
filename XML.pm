@@ -394,7 +394,7 @@ sub iso8601 {
     my ($in) = @_;
     return $in if $in =~ m{^\d\d\d\d-\d\d-\d\d$}; # simple date
     return $in if $in =~ m{^\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\d+00:00$}; # simple date + time GMT
-    return $in if $in =~ m{^\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\dZ$}; # simple date + time GMT
+    return $in if $in =~ m{^\d\d\d\d-\d\d-\d\dT\d\d:\d\d:\d\dZ?$}; # simple date + time GMT
     die "NIY: can't parse date: '$in'";
 }
 
