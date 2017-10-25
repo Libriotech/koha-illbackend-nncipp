@@ -25,6 +25,7 @@ use XML::LibXML;
 use LWP::UserAgent;
 use HTTP::Request;
 
+use Koha::Biblios;
 use Koha::Illbackends::NNCIPP::NNCIPP;
 use Koha::Illrequestattribute;
 use Koha::Patrons;
@@ -139,7 +140,7 @@ sub metadata {
     my $attrs = $request->illrequestattributes;
 
     if (my $biblio_id = $request->biblio_id) {
-        my $b = C4::Biblio::GetBiblio( $biblio_id, 1 );
+        my $b = Koha::Biblios->find( $biblio_id );
         use Data::Dumper; warn Dumper($b);
         my $title = $b->{title} // '-';
         my $author = $b->{author} // '-';
